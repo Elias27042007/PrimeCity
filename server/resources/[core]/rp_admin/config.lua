@@ -13,6 +13,7 @@ RPAdminConfig = {
   bringCommand = 'bring',
   freezeCommand = 'freeze',
   skinCommand = 'skin',
+  identityCommand = 'identity',
   noclipCommand = 'noclip',
   adutyCommand = 'aduty',
   hudCommand = 'hud',

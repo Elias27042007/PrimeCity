@@ -1,9 +1,19 @@
 local isOpen = false
+local currentMode = 'create'
 
-local function setUI(open)
+local function setUI(open, payload)
   isOpen = open
+  if open then
+    currentMode = (type(payload) == 'table' and payload.mode == 'update') and 'update' or 'create'
+  else
+    currentMode = 'create'
+  end
+
   SetNuiFocus(open, open)
-  SendNUIMessage({ action = open and 'open' or 'close' })
+  SendNUIMessage({
+    action = open and 'open' or 'close',
+    data = payload
+  })
 
   if open then
     TriggerEvent('rp:hud:toggle', false)
@@ -13,8 +23,8 @@ local function setUI(open)
   end
 end
 
-RegisterNetEvent('rp:identity:open', function()
-  setUI(true)
+RegisterNetEvent('rp:identity:open', function(payload)
+  setUI(true, payload)
 end)
 
 RegisterNUICallback('submitIdentity', function(data, cb)
@@ -60,14 +70,20 @@ RegisterNUICallback('submitIdentity', function(data, cb)
     return
   end
 
-  TriggerServerEvent('rp:identity:create', {
+  local submitPayload = {
     firstName = firstName,
     lastName = lastName,
     dateOfBirth = dob,
     sex = sex,
     height = height,
     nationality = nationality
-  })
+  }
+
+  if currentMode == 'update' then
+    TriggerServerEvent('rp:identity:update', submitPayload)
+  else
+    TriggerServerEvent('rp:identity:create', submitPayload)
+  end
 
   cb({ ok = true })
 end)

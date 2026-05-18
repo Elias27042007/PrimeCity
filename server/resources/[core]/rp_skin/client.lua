@@ -2,6 +2,8 @@ local creating = false
 local currentSex = 'm'
 local currentMode = 'creator'
 local creatorViewLockThreadRunning = false
+local creatorCam = nil
+local creatorAnchor = nil
 
 local function clampInt(value, minValue, maxValue)
   value = math.floor(tonumber(value) or minValue)
@@ -32,6 +34,93 @@ local function loadModel(model)
   return true
 end
 
+local function destroyCreatorCamera()
+  if creatorCam and DoesCamExist(creatorCam) then
+    RenderScriptCams(false, true, 250, true, true)
+    DestroyCam(creatorCam, false)
+  end
+
+  creatorCam = nil
+  creatorAnchor = nil
+  ClearFocus()
+end
+
+local function updateCreatorCamera()
+  if not creating then
+    return
+  end
+
+  local ped = PlayerPedId()
+  if ped == 0 or not DoesEntityExist(ped) then
+    return
+  end
+
+  if not creatorCam or not DoesCamExist(creatorCam) then
+    creatorCam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
+  end
+
+  local cfg = RPSkinConfig.camera or {}
+  local distance = tonumber(cfg.distance) or 3.2
+  local height = tonumber(cfg.height) or 0.95
+  local targetHeight = tonumber(cfg.targetHeight) or 0.58
+  local pitch = tonumber(cfg.pitch) or -9.0
+
+  local coords = GetEntityCoords(ped)
+  local heading = GetEntityHeading(ped)
+  local headingRad = math.rad(heading)
+  local forwardX = -math.sin(headingRad)
+  local forwardY = math.cos(headingRad)
+
+  local camX = coords.x + (forwardX * distance)
+  local camY = coords.y + (forwardY * distance)
+  local camZ = coords.z + height
+
+  SetCamCoord(creatorCam, camX, camY, camZ)
+  SetCamRot(creatorCam, pitch, 0.0, heading + 180.0, 2)
+  PointCamAtCoord(creatorCam, coords.x, coords.y, coords.z + targetHeight)
+  SetFocusPosAndVel(coords.x, coords.y, coords.z, 0.0, 0.0, 0.0)
+
+  if not IsCamActive(creatorCam) then
+    SetCamActive(creatorCam, true)
+    RenderScriptCams(true, true, 250, true, true)
+  end
+end
+
+local function setCreatorAnchorFromPed()
+  local ped = PlayerPedId()
+  if ped == 0 or not DoesEntityExist(ped) then
+    return
+  end
+
+  local coords = GetEntityCoords(ped)
+  creatorAnchor = {
+    x = coords.x,
+    y = coords.y,
+    z = coords.z,
+    heading = GetEntityHeading(ped)
+  }
+end
+
+local function enforceCreatorAnchor()
+  if not creatorAnchor then
+    return
+  end
+
+  local ped = PlayerPedId()
+  if ped == 0 or not DoesEntityExist(ped) then
+    return
+  end
+
+  local coords = GetEntityCoords(ped)
+  local dx = math.abs(coords.x - creatorAnchor.x)
+  local dy = math.abs(coords.y - creatorAnchor.y)
+  local dz = math.abs(coords.z - creatorAnchor.z)
+
+  if dx > 0.01 or dy > 0.01 or dz > 0.01 then
+    SetEntityCoordsNoOffset(ped, creatorAnchor.x, creatorAnchor.y, creatorAnchor.z, false, false, false)
+  end
+end
+
 local function ensureCreatorViewLockThread()
   if creatorViewLockThreadRunning then
     return
@@ -41,7 +130,11 @@ local function ensureCreatorViewLockThread()
 
   CreateThread(function()
     while creating do
-      -- Force stable third-person while the creator is open.
+      -- Keep the creator view stable and prevent camera mode/position switches.
+      InvalidateIdleCam()
+      InvalidateVehicleIdleCam()
+      enforceCreatorAnchor()
+      updateCreatorCamera()
       SetFollowPedCamViewMode(0)
       DisableControlAction(0, 0, true)    -- Look left/right
       DisableControlAction(0, 1, true)    -- Look up/down
@@ -333,6 +426,8 @@ local function openCreator(defaults)
   SetEntityInvincible(ped, true)
   SetEntityCollision(ped, true, true)
   SetFollowPedCamViewMode(0)
+  setCreatorAnchorFromPed()
+  updateCreatorCamera()
   ensureCreatorViewLockThread()
   TriggerEvent('rp:hud:toggle', false)
 end
@@ -374,6 +469,8 @@ RegisterNUICallback('previewSkin', function(data, cb)
     SetEntityInvincible(ped, true)
     SetEntityCollision(ped, true, true)
     SetFollowPedCamViewMode(0)
+    setCreatorAnchorFromPed()
+    updateCreatorCamera()
   end
 
   local applied = applySkinData({
@@ -403,6 +500,7 @@ RegisterNUICallback('rotateView', function(data, cb)
     local ped = PlayerPedId()
     SetEntityHeading(ped, (GetEntityHeading(ped) + delta) % 360.0)
     SetFollowPedCamViewMode(0)
+    updateCreatorCamera()
   end
 
   cb({ ok = true })
@@ -438,6 +536,7 @@ RegisterNetEvent('rp:skin:closeCreator', function()
   currentMode = 'creator'
   SetNuiFocus(false, false)
   SendNUIMessage({ action = 'close' })
+  destroyCreatorCamera()
 
   local ped = PlayerPedId()
   FreezeEntityPosition(ped, false)
@@ -451,5 +550,6 @@ AddEventHandler('onResourceStop', function(resourceName)
   end
 
   creating = false
+  destroyCreatorCamera()
   SetNuiFocus(false, false)
 end)

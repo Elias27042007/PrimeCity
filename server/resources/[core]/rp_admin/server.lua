@@ -12,6 +12,7 @@ RPAdminConfig = RPAdminConfig or {
   bringCommand = 'bring',
   freezeCommand = 'freeze',
   skinCommand = 'skin',
+  identityCommand = 'identity',
   noclipCommand = 'noclip',
   nameCommand = 'name',
   adutyCommand = 'aduty',
@@ -65,6 +66,7 @@ local SET_MONEY_PERMISSION_KEY = 'commands.setmoney'
 local GIVE_ITEM_PERMISSION_KEY = 'commands.giveitem'
 local SET_JOB_PERMISSION_KEY = 'commands.setjob'
 local GIVE_WEAPON_PERMISSION_KEY = 'commands.giveweapon'
+local IDENTITY_PERMISSION_KEY = 'commands.identity'
 local INFO_COMMAND_NAME = 'i'
 local ID_COMMAND_NAME = 'id'
 local RANK_COMMAND_NAME = 'rang'
@@ -301,6 +303,14 @@ local function getCommandCatalog()
         { name = 'id', help = 'Server-ID des Zielspielers' }
       },
       permission = 'commands.skin'
+    },
+    {
+      name = getCommandName(RPAdminConfig.identityCommand, 'identity'),
+      help = 'Öffnet das Identity-Menü für einen Spieler.',
+      params = {
+        { name = 'id', help = 'Server-ID des Zielspielers' }
+      },
+      permission = IDENTITY_PERMISSION_KEY
     },
     {
       name = getCommandName(RPAdminConfig.noclipCommand, 'noclip'),
@@ -1164,6 +1174,7 @@ local function bootstrapAdminData()
       ('commands.bring', 'Bring-Befehl', 'Darf /bring [id] ausführen'),
       ('commands.freeze', 'Freeze-Befehl', 'Darf /freeze [id] ausführen'),
       ('commands.skin', 'Skin-Befehl', 'Darf /skin [id] ausführen'),
+      ('commands.identity', 'Identity-Befehl', 'Darf /identity [id] ausführen'),
       ('commands.noclip', 'Noclip-Befehl', 'Darf /noclip ausführen'),
       ('commands.name', 'Nametag-Befehl', 'Darf /name ausführen'),
       ('commands.aduty', 'Admin-Duty-Befehl', 'Darf /aduty ausführen'),
@@ -1194,9 +1205,9 @@ local function bootstrapAdminData()
     JOIN admin_permissions p ON (
       (r.role_name = 'supporter' AND p.permission_key IN ('admin.menu.open','dashboard.view','tickets.view','tickets.manage')) OR
       (r.role_name = 'moderator' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','bans.view','tickets.view','tickets.manage','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.name','commands.aduty','scripts.view','settings.view')) OR
-      (r.role_name = 'admin' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage')) OR
-      (r.role_name = 'manager' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage')) OR
-      (r.role_name = 'projektleitung' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage','rights.view','rights.assign'))
+      (r.role_name = 'admin' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.identity','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage')) OR
+      (r.role_name = 'manager' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.identity','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage')) OR
+      (r.role_name = 'projektleitung' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.identity','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage','rights.view','rights.assign'))
     )
   ]])
 
@@ -4729,6 +4740,48 @@ RegisterCommand(RPAdminConfig.skinCommand or 'skin', function(source, args)
 
   notify(source, 'success', ('Skin-Menü für %s (ID %s) geöffnet.'):format(getProfileNameBySource(targetSource), targetSource))
   notify(targetSource, 'info', ('%s hat dein Skin-Menü geöffnet.'):format(getProfileNameBySource(source)))
+end, false)
+
+RegisterCommand(RPAdminConfig.identityCommand or 'identity', function(source, args)
+  if source <= 0 then
+    print(('[rp_admin] Nutze den Befehl /%s [id] im Spiel.'):format(RPAdminConfig.identityCommand or 'identity'))
+    return
+  end
+
+  if not ensurePermission(source, IDENTITY_PERMISSION_KEY) then
+    return
+  end
+
+  if not canDo(source, 'command.identity', 500) then
+    return
+  end
+
+  local targetSource = getTargetSourceFromCommandArg(source, args and args[1], ('/%s'):format(RPAdminConfig.identityCommand or 'identity'), false)
+  if not targetSource then
+    return
+  end
+
+  if not canAffectTargetByHierarchy(source, targetSource, 'Du kannst die Identität von gleich hohen oder höheren Rängen nicht ändern.') then
+    return
+  end
+
+  if GetResourceState('rp_identity') ~= 'started' then
+    notify(source, 'error', 'rp_identity ist nicht gestartet.')
+    return
+  end
+
+  local success, result = exports.rp_identity:OpenIdentityEditor(targetSource, source)
+  if not success then
+    notify(source, 'error', tostring(result or 'Identity-Menü konnte nicht geöffnet werden.'))
+    return
+  end
+
+  local actorUserId = getUserIdFromSource(source)
+  local targetUserId = getUserIdFromSource(targetSource)
+  auditAction(actorUserId, 'command.identity', targetUserId, { targetSource = targetSource })
+
+  notify(source, 'success', ('Identity-Menü für %s (ID %s) geöffnet.'):format(getProfileNameBySource(targetSource), targetSource))
+  notify(targetSource, 'info', ('%s hat dein Identity-Menü geöffnet.'):format(getProfileNameBySource(source)))
 end, false)
 
 RegisterCommand(RPAdminConfig.noclipCommand or 'noclip', function(source)

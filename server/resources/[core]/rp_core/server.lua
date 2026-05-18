@@ -536,6 +536,80 @@ local function createCharacterForSource(source, identityData)
   }
 end
 
+local function updateCharacterIdentityForSource(source, identityData)
+  local state = getPlayerState(source)
+  if not state or not state.userId or not state.characterId or not state.loaded then
+    return false, 'Spielerstatus nicht bereit.'
+  end
+
+  local ok, validated = validateIdentity(identityData)
+  if not ok then
+    return false, validated
+  end
+
+  local characterId = state.characterId
+
+  MySQL.update.await(
+    [=[UPDATE characters
+        SET first_name = ?, last_name = ?, date_of_birth = ?, sex = ?, height_cm = ?, nationality = ?, updated_at = NOW()
+        WHERE id = ?]=],
+    {
+      validated.firstName,
+      validated.lastName,
+      validated.dateOfBirth,
+      validated.sex,
+      validated.height,
+      validated.nationality,
+      characterId
+    }
+  )
+
+  local hasIdentity = MySQL.scalar.await('SELECT character_id FROM character_identity WHERE character_id = ? LIMIT 1', { characterId })
+  if hasIdentity then
+    MySQL.update.await(
+      [=[UPDATE character_identity
+          SET first_name = ?, last_name = ?, date_of_birth = ?, sex = ?, height_cm = ?, nationality = ?, updated_at = NOW()
+          WHERE character_id = ?]=],
+      {
+        validated.firstName,
+        validated.lastName,
+        validated.dateOfBirth,
+        validated.sex,
+        validated.height,
+        validated.nationality,
+        characterId
+      }
+    )
+  else
+    MySQL.insert.await(
+      [=[INSERT INTO character_identity (character_id, first_name, last_name, date_of_birth, sex, height_cm, nationality)
+          VALUES (?, ?, ?, ?, ?, ?, ?)]=],
+      {
+        characterId,
+        validated.firstName,
+        validated.lastName,
+        validated.dateOfBirth,
+        validated.sex,
+        validated.height,
+        validated.nationality
+      }
+    )
+  end
+
+  local charRow = MySQL.single.await('SELECT * FROM characters WHERE id = ? LIMIT 1', { characterId })
+  local identityRow = loadIdentity(characterId)
+  if charRow then
+    pushCharacterLoaded(source, charRow, identityRow)
+  end
+
+  logAudit('character_identity_updated', state.userId, characterId, 'rp_core', validated)
+
+  return true, {
+    characterId = characterId,
+    fullName = ('%s %s'):format(validated.firstName, validated.lastName)
+  }
+end
+
 local function finalizeCharacterSetup(source, skinPayload)
   local state = getPlayerState(source)
   if not state or not state.characterId then
@@ -707,6 +781,10 @@ end)
 
 exports('CreateCharacter', function(source, identityData)
   return createCharacterForSource(source, identityData)
+end)
+
+exports('UpdateCharacterIdentity', function(source, identityData)
+  return updateCharacterIdentityForSource(source, identityData)
 end)
 
 exports('FinalizeCharacterSetup', function(source, skinPayload)
