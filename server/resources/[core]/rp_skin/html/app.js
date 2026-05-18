@@ -52,7 +52,6 @@ const state = {
 };
 
 let previewTimer = null;
-let rotating = false;
 
 const deepMerge = (base, incoming) => {
   const out = Array.isArray(base) ? [...base] : { ...base };
@@ -206,34 +205,6 @@ saveBtn.addEventListener('click', async () => {
     stateEl.textContent = result && result.ok ? 'Gespeichert.' : (result?.message || 'Fehler beim Speichern.');
   } catch (_err) {
     stateEl.textContent = 'NUI-Fehler beim Speichern.';
-  }
-});
-
-const rotateView = async (delta) => {
-  if (rotating) {
-    return;
-  }
-  rotating = true;
-  try {
-    await post('rotateView', { delta });
-  } catch (_err) {
-    // ignore
-  } finally {
-    rotating = false;
-  }
-};
-
-window.addEventListener('keydown', (event) => {
-  if (app.classList.contains('hidden')) {
-    return;
-  }
-
-  if (event.key === 'ArrowLeft') {
-    event.preventDefault();
-    rotateView(-7);
-  } else if (event.key === 'ArrowRight') {
-    event.preventDefault();
-    rotateView(7);
   }
 });
 

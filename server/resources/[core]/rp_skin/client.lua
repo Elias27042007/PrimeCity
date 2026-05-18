@@ -66,7 +66,7 @@ local function updateCreatorCamera()
   local fov = tonumber(cfg.fov) or 58.0
 
   local coords = GetEntityCoords(ped)
-  local camPos = GetOffsetFromEntityInWorldCoords(ped, 0.0, -distance, height)
+  local camPos = GetOffsetFromEntityInWorldCoords(ped, 0.0, distance, height)
 
   SetCamCoord(creatorCam, camPos.x, camPos.y, camPos.z)
   PointCamAtCoord(creatorCam, coords.x, coords.y, coords.z + targetHeight)
@@ -108,9 +108,15 @@ local function enforceCreatorAnchor()
   local dx = math.abs(coords.x - creatorAnchor.x)
   local dy = math.abs(coords.y - creatorAnchor.y)
   local dz = math.abs(coords.z - creatorAnchor.z)
+  local currentHeading = GetEntityHeading(ped)
+  local headingDiff = math.abs((((currentHeading - creatorAnchor.heading) + 540.0) % 360.0) - 180.0)
 
   if dx > 0.01 or dy > 0.01 or dz > 0.01 then
     SetEntityCoordsNoOffset(ped, creatorAnchor.x, creatorAnchor.y, creatorAnchor.z, false, false, false)
+  end
+
+  if headingDiff > 0.1 then
+    SetEntityHeading(ped, creatorAnchor.heading)
   end
 end
 
@@ -577,14 +583,6 @@ RegisterNUICallback('rotateView', function(data, cb)
   if not creating then
     cb({ ok = false })
     return
-  end
-
-  local delta = tonumber(data and data.delta) or 0.0
-  if delta ~= 0.0 then
-    local ped = PlayerPedId()
-    SetEntityHeading(ped, (GetEntityHeading(ped) + delta) % 360.0)
-    SetFollowPedCamViewMode(0)
-    updateCreatorCamera()
   end
 
   cb({ ok = true })
