@@ -1,0 +1,157 @@
+:root {
+  --bg-1: rgba(7, 10, 18, 0.84);
+  --bg-2: rgba(6, 14, 30, 0.78);
+  --panel: rgba(20, 26, 40, 0.93);
+  --panel-border: rgba(146, 181, 255, 0.22);
+  --field: rgba(15, 21, 33, 0.96);
+  --field-border: rgba(168, 193, 255, 0.16);
+  --field-border-focus: rgba(100, 190, 255, 0.9);
+  --accent: #5ec4ff;
+  --accent-2: #72e4ff;
+  --text: #edf3ff;
+  --muted: #b3bfdc;
+  --danger: #ff7487;
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: 'Bahnschrift', 'Trebuchet MS', 'Segoe UI', sans-serif;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background:
+    radial-gradient(70vh 45vh at 0% 0%, rgba(94, 196, 255, 0.18), transparent 60%),
+    radial-gradient(50vh 35vh at 100% 100%, rgba(80, 130, 255, 0.2), transparent 65%),
+    linear-gradient(135deg, var(--bg-1), var(--bg-2));
+}
+
+.hidden { display: none !important; }
+
+.card {
+  width: min(760px, 95vw);
+  background: var(--panel);
+  border-radius: var(--radius);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(9px);
+  box-shadow:
+    0 22px 55px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  padding: 26px;
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-size: 27px;
+  letter-spacing: 0.01em;
+}
+.subtitle { margin: 0 0 18px; color: var(--muted); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  gap: 6px;
+}
+
+input, select {
+  width: 100%;
+  background: var(--field);
+  border: 1px solid var(--field-border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+input::placeholder {
+  color: rgba(179, 191, 220, 0.72);
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.25);
+  cursor: pointer;
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #89d9ff 50%),
+    linear-gradient(135deg, #89d9ff 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% - 3px),
+    calc(100% - 10px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 34px;
+}
+
+select option {
+  background: #10182a;
+  color: #edf3ff;
+}
+
+input:focus, select:focus {
+  border-color: var(--field-border-focus);
+  box-shadow: 0 0 0 3px rgba(94, 196, 255, 0.2);
+}
+
+button {
+  margin-top: 16px;
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: #041124;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  box-shadow: 0 10px 24px rgba(80, 170, 255, 0.4);
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+#message {
+  min-height: 18px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--danger);
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

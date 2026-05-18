@@ -1,0 +1,107 @@
+:root {
+  --bg: rgba(9, 12, 19, 0.68);
+  --panel: rgba(22, 28, 40, 0.96);
+  --surface: rgba(255,255,255,.04);
+  --accent: #39d0ff;
+  --text: #e5ecff;
+  --muted: #9da8c7;
+  --ok: #4dd793;
+}
+
+* { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+body { margin: 0; background: transparent; }
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: radial-gradient(circle at 20% 20%, rgba(57,208,255,.17), transparent 45%), var(--bg);
+}
+.hidden { display: none !important; }
+
+.panel {
+  width: min(960px, 95vw);
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 18px;
+  color: var(--text);
+  box-shadow: 0 20px 50px rgba(0,0,0,.45);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+h1, h2 { margin: 0; }
+h2 { margin-top: 12px; font-size: 18px; }
+
+.overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 10px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card span { color: var(--muted); font-size: 12px; }
+.card strong { font-size: 19px; }
+
+.actions { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 8px; }
+
+input, select, button {
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  padding: 10px;
+}
+
+input, select { flex: 1; }
+button {
+  cursor: pointer;
+  background: linear-gradient(90deg, #39d0ff, #7ba1ff);
+  border: 0;
+  color: #0f1422;
+  font-weight: 700;
+}
+
+.transactions {
+  margin-top: 10px;
+  max-height: 280px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.tx {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 10px;
+  padding: 9px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.tx .meta { color: var(--muted); }
+#state { margin-top: 10px; color: var(--ok); font-size: 13px; min-height: 16px; }
+
+@media (max-width: 760px) {
+  .overview { grid-template-columns: 1fr; }
+  .row { flex-direction: column; }
+}

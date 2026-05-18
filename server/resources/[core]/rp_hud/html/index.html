@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RP HUD</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="editHint" class="edit-hint hidden">HUD-Editor aktiv: Ziehe die Box. Mit ESC beenden.</div>
+  <div id="hud" class="hud">
+    <div class="panel">
+      <div class="name" id="name">Unbekannt</div>
+      <div class="row"><span>Bargeld</span><strong id="cash">0$</strong></div>
+      <div class="row"><span>Bank</span><strong id="bank">0$</strong></div>
+      <div class="row"><span>Job</span><strong id="job">Arbeitslos</strong></div>
+      <div class="row"><span>Zeit</span><strong id="time">00:00</strong></div>
+    </div>
+  </div>
+
+  <div id="veh" class="vehicle hidden">
+    <div class="panel">
+      <div class="row"><span>Geschwindigkeit</span><strong id="speed">0 km/h</strong></div>
+      <div class="row"><span>Gang</span><strong id="gear">N</strong></div>
+      <div class="row"><span>Motor</span><strong id="engine">Aus</strong></div>
+      <div class="row"><span>Tank</span><strong id="fuel">-</strong></div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

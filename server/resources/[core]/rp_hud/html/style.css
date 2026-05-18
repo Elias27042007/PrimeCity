@@ -1,0 +1,77 @@
+:root {
+  --panel: rgba(20, 26, 39, 0.9);
+  --surface: rgba(255,255,255,.05);
+  --accent: #39d0ff;
+  --text: #e7eeff;
+  --muted: #9ea9cb;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+body { margin: 0; background: transparent; overflow: hidden; }
+
+.hud {
+  position: fixed;
+  left: clamp(275px, 17.5vw, 380px);
+  bottom: clamp(70px, 9.5vh, 130px);
+  z-index: 20;
+}
+
+.edit-hint {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(57, 208, 255, 0.55);
+  background: rgba(14, 21, 33, 0.94);
+  box-shadow: 0 12px 24px rgba(0,0,0,.35);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  z-index: 150;
+}
+
+.vehicle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+}
+
+.panel {
+  min-width: 220px;
+  background: linear-gradient(150deg, rgba(23,30,45,.92), var(--panel));
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  padding: 12px;
+  color: var(--text);
+}
+
+.hud.edit-mode { cursor: move; z-index: 160; }
+.hud.edit-mode .panel {
+  border-color: rgba(57, 208, 255, 0.7);
+  box-shadow: 0 0 0 2px rgba(57, 208, 255, 0.25), 0 16px 34px rgba(0,0,0,.45);
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+.row:last-child { border-bottom: 0; }
+.row span { color: var(--muted); }
+
+.hidden { display: none !important; }

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PrimeCity Admin</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" class="hidden">
+    <div class="laptop-frame">
+      <div class="laptop-screen">
+        <header class="topbar">
+          <h1 id="panelTitle">PrimeCity Admin Panel</h1>
+          <button id="closeBtn" class="btn danger" type="button">Schließen</button>
+        </header>
+
+        <div class="workspace">
+          <aside class="sidebar">
+            <nav class="tabs" id="tabs"></nav>
+          </aside>
+          <main class="content" id="content"></main>
+        </div>
+
+        <footer class="footer">
+          <div id="footerInfo">Bereit</div>
+          <div id="viewerRole" class="role-badge">Kein Rang</div>
+        </footer>
+      </div>
+      <div class="laptop-base"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

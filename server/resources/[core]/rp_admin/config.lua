@@ -1,0 +1,39 @@
+RPAdminConfig = {
+  command = 'admin',
+  ticketCommand = 'ticket',
+  carCommand = 'car',
+  deleteCommand = 'delete',
+  healCommand = 'heal',
+  reviveCommand = 'revive',
+  repairCommand = 'repair',
+  reloadCommand = 'reload',
+  gotoCommand = 'goto',
+  tpCommand = 'tp',
+  tpmCommand = 'tpm',
+  bringCommand = 'bring',
+  freezeCommand = 'freeze',
+  skinCommand = 'skin',
+  noclipCommand = 'noclip',
+  adutyCommand = 'aduty',
+  hudCommand = 'hud',
+  giveMoneyCommand = 'givemoney',
+  setMoneyCommand = 'setmoney',
+  giveItemCommand = 'giveitem',
+  setJobCommand = 'setjob',
+  giveWeaponCommand = 'giveweapon',
+  roleChangeKickCheckMs = 5000,
+  maxListEntries = 200,
+  defaultBanDurationHours = 24,
+  maxBanDurationHours = 24 * 365,
+  maxReasonLength = 220,
+  maxTicketTitleLength = 120,
+  maxTicketDescriptionLength = 1200,
+  refreshCooldownMs = 1200,
+  notifications = {
+    title = 'Admin'
+  },
+  ui = {
+    title = 'PrimeCity Admin Control',
+    subtitle = 'Projektverwaltung'
+  }
+}

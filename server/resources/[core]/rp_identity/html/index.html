@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Identity</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" class="hidden">
+    <div class="card">
+      <h1>Personalausweis erstellen</h1>
+      <p class="subtitle">Bitte gib deine Charakterdaten ein.</p>
+      <form id="identityForm">
+        <div class="grid">
+          <label>Vorname<input name="firstName" maxlength="24" required /></label>
+          <label>Nachname<input name="lastName" maxlength="24" required /></label>
+          <label>Geburtsdatum<input name="dateOfBirth" type="date" required /></label>
+          <label>Geschlecht
+            <select name="sex" required>
+              <option value="m">Männlich</option>
+              <option value="f">Weiblich</option>
+              <option value="d">Divers</option>
+            </select>
+          </label>
+          <label>Größe (cm)<input name="height" type="number" min="120" max="230" value="175" required /></label>
+          <label>Nationalität<input name="nationality" maxlength="32" required /></label>
+        </div>
+        <button type="submit">Charakter erstellen</button>
+      </form>
+      <div id="message"></div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

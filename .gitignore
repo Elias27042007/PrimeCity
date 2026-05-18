@@ -1,0 +1,5 @@
+.DS_Store
+
+server/cache/
+server/txData/default/logs/
+server/txData/default/data/

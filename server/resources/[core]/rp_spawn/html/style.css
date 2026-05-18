@@ -1,0 +1,46 @@
+:root {
+  --bg: rgba(7, 10, 17, 0.72);
+  --panel: rgba(20, 25, 38, 0.95);
+  --accent: #39d0ff;
+  --text: #e6ecff;
+}
+
+* { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+body { margin: 0; background: transparent; }
+
+#loader {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 30%, rgba(57,208,255,.17), transparent 42%), var(--bg);
+}
+
+.hidden { display: none !important; }
+
+.panel {
+  min-width: 300px;
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,.12);
+  border-top-color: var(--accent);
+  animation: spin .7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

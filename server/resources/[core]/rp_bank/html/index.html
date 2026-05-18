@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RP Bank</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" class="hidden">
+    <div class="panel">
+      <div class="head">
+        <h1>Banking</h1>
+        <button id="closeBtn">Schließen</button>
+      </div>
+      <div class="overview">
+        <div class="card"><span>Konto</span><strong id="accountNumber">-</strong></div>
+        <div class="card"><span>Bargeld</span><strong id="cash">0$</strong></div>
+        <div class="card"><span>Bank</span><strong id="bank">0$</strong></div>
+      </div>
+
+      <div class="actions">
+        <div class="row">
+          <input id="depositAmount" type="number" min="1" placeholder="Einzahlen" />
+          <button id="depositBtn">Einzahlen</button>
+        </div>
+        <div class="row">
+          <input id="withdrawAmount" type="number" min="1" placeholder="Auszahlen" />
+          <button id="withdrawBtn">Auszahlen</button>
+        </div>
+        <div class="row">
+          <select id="transferMode">
+            <option value="serverid">Server-ID</option>
+            <option value="account">Kontonummer</option>
+          </select>
+          <input id="transferTarget" type="text" placeholder="Ziel" />
+          <input id="transferAmount" type="number" min="1" placeholder="Betrag" />
+          <button id="transferBtn">Überweisen</button>
+        </div>
+      </div>
+
+      <h2>Transaktionen</h2>
+      <div id="transactions" class="transactions"></div>
+      <div id="state"></div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
