@@ -37,34 +37,41 @@ RegisterNetEvent('rp:skin:save', function(payload)
 
   local clean = {
     sex = (skin.sex == 'f') and 'f' or 'm',
-    components = {
-      torso = sanitizeInt(components.torso, 15, 255),
-      torsoTexture = sanitizeInt(components.torsoTexture, 0, 255),
-      pants = sanitizeInt(components.pants, 21, 255),
-      pantsTexture = sanitizeInt(components.pantsTexture, 0, 255),
-      shoes = sanitizeInt(components.shoes, 34, 255),
-      shoesTexture = sanitizeInt(components.shoesTexture, 0, 255),
-      hair = sanitizeInt(components.hair, 0, 255),
-      hairTexture = sanitizeInt(components.hairTexture, 0, 255),
-      mask = sanitizeInt(components.mask, 0, 255),
-      maskTexture = sanitizeInt(components.maskTexture, 0, 255),
-      chain = sanitizeInt(components.chain, 0, 255),
-      chainTexture = sanitizeInt(components.chainTexture, 0, 255)
-    },
-    props = {
-      hat = sanitizeInt(props.hat, -1, 255),
-      hatTexture = sanitizeInt(props.hatTexture, 0, 255),
-      glasses = sanitizeInt(props.glasses, -1, 255),
-      glassesTexture = sanitizeInt(props.glassesTexture, 0, 255)
-    },
-    overlays = {
-      beard = sanitizeInt(overlays.beard, -1, 255),
-      beardOpacity = sanitizeInt(overlays.beardOpacity, 0, 100),
-      beardColor = sanitizeInt(overlays.beardColor, 0, 63),
-      hairColor = sanitizeInt(overlays.hairColor, 0, 63),
-      hairHighlight = sanitizeInt(overlays.hairHighlight, 0, 63)
-    }
+    components = {},
+    props = {},
+    overlays = {}
   }
+
+  local componentSlots = RPSkinConfig and RPSkinConfig.componentSlots or {}
+  for key, slot in pairs(componentSlots) do
+    local defaultValue = tonumber(slot.default) or 0
+    clean.components[key] = sanitizeInt(components[key], defaultValue, 255)
+
+    local textureKey = tostring(slot.textureKey or '')
+    if textureKey ~= '' then
+      clean.components[textureKey] = sanitizeInt(components[textureKey], 0, 255)
+    end
+  end
+
+  local propSlots = RPSkinConfig and RPSkinConfig.propSlots or {}
+  for key, slot in pairs(propSlots) do
+    local defaultValue = tonumber(slot.default)
+    if defaultValue == nil then
+      defaultValue = -1
+    end
+    clean.props[key] = sanitizeInt(props[key], defaultValue, 255)
+
+    local textureKey = tostring(slot.textureKey or '')
+    if textureKey ~= '' then
+      clean.props[textureKey] = sanitizeInt(props[textureKey], 0, 255)
+    end
+  end
+
+  clean.overlays.beard = sanitizeInt(overlays.beard, -1, 255)
+  clean.overlays.beardOpacity = sanitizeInt(overlays.beardOpacity, 0, 100)
+  clean.overlays.beardColor = sanitizeInt(overlays.beardColor, 0, 63)
+  clean.overlays.hairColor = sanitizeInt(overlays.hairColor, 0, 63)
+  clean.overlays.hairHighlight = sanitizeInt(overlays.hairHighlight, 0, 63)
 
   local success, reason = exports.rp_core:FinalizeCharacterSetup(src, {
     model = payload.model,

@@ -366,6 +366,71 @@ local function applySkinData(payload)
   return skin
 end
 
+local function captureCurrentSkinData(sexFallback)
+  local ped = PlayerPedId()
+  local captured = {
+    sex = (sexFallback == 'f') and 'f' or 'm',
+    components = {},
+    props = {},
+    overlays = {}
+  }
+
+  local componentSlots = RPSkinConfig.componentSlots or {}
+  for key, slot in pairs(componentSlots) do
+    local componentId = tonumber(slot.component) or 0
+    captured.components[key] = GetPedDrawableVariation(ped, componentId)
+
+    if slot.textureKey and slot.textureKey ~= '' then
+      captured.components[slot.textureKey] = GetPedTextureVariation(ped, componentId)
+    end
+  end
+
+  local propSlots = RPSkinConfig.propSlots or {}
+  for key, slot in pairs(propSlots) do
+    local propId = tonumber(slot.prop) or 0
+    local drawable = GetPedPropIndex(ped, propId)
+    if drawable == nil then
+      drawable = -1
+    end
+    captured.props[key] = drawable
+
+    if slot.textureKey and slot.textureKey ~= '' then
+      if drawable and drawable >= 0 then
+        captured.props[slot.textureKey] = GetPedPropTextureIndex(ped, propId)
+      else
+        captured.props[slot.textureKey] = 0
+      end
+    end
+  end
+
+  local hairColor = 0
+  local hairHighlight = 0
+  if GetPedHairColor then
+    hairColor = tonumber(GetPedHairColor(ped)) or 0
+  end
+  if GetPedHairHighlightColor then
+    hairHighlight = tonumber(GetPedHairHighlightColor(ped)) or 0
+  else
+    hairHighlight = hairColor
+  end
+
+  local beardValue = -1
+  if GetPedHeadOverlayValue then
+    local overlay = tonumber(GetPedHeadOverlayValue(ped, 1))
+    if overlay ~= nil and overlay >= 0 and overlay < 255 then
+      beardValue = overlay
+    end
+  end
+
+  captured.overlays.beard = beardValue
+  captured.overlays.beardOpacity = 100
+  captured.overlays.beardColor = hairColor
+  captured.overlays.hairColor = hairColor
+  captured.overlays.hairHighlight = hairHighlight
+
+  return captured
+end
+
 local function pushOpenStateToNui(mode, skin)
   local modeLabel = 'Character Creator'
   local subtitle = 'Grundauswahl für deinen Startlook.'
@@ -429,6 +494,30 @@ end
 
 RegisterNetEvent('rp:skin:openCreator', function(defaults)
   openCreator(defaults)
+end)
+
+RegisterNetEvent('rp:skin:openCurrent', function(defaults)
+  local payload = type(defaults) == 'table' and defaults or {}
+  local liveSkin = captureCurrentSkinData(payload.sex or 'm')
+
+  local finalPayload = {
+    mode = payload.mode or 'skin',
+    sex = liveSkin.sex,
+    model = payload.model,
+    components = liveSkin.components,
+    props = liveSkin.props,
+    overlays = liveSkin.overlays
+  }
+
+  if type(payload.overlays) == 'table' then
+    for key, value in pairs(payload.overlays) do
+      if liveSkin.overlays[key] == nil then
+        finalPayload.overlays[key] = value
+      end
+    end
+  end
+
+  openCreator(finalPayload)
 end)
 
 RegisterNetEvent('rp:skin:applyOrOpen', function(data)

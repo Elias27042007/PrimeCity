@@ -145,7 +145,7 @@ RegisterNetEvent('rp:identity:update', function(data)
 
   PendingIdentityEdits[src] = nil
   TriggerClientEvent('rp:identity:close', src)
-  notify(src, 'success', 'Identität', ('%s wurde aktualisiert.'):format(result.fullName or 'Charakter'))
+  notify(src, 'success', 'Identität', 'Charakter erfolgreich gespeichert.')
 end)
 
 RegisterNetEvent('rp:identity:adminSubmit', function(data)
@@ -185,7 +185,7 @@ RegisterNetEvent('rp:identity:adminSubmit', function(data)
   TriggerClientEvent('rp:identity:close', src)
 
   if characterId then
-    notify(src, 'success', 'Identität', ('%s wurde aktualisiert.'):format(result.fullName or 'Charakter'))
+    notify(src, 'success', 'Identität', 'Charakter erfolgreich gespeichert.')
   else
     notify(src, 'success', 'Charakter', ('%s wurde erstellt.'):format(result.fullName or 'Charakter'))
   end

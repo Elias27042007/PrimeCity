@@ -4691,7 +4691,7 @@ RegisterCommand(RPAdminConfig.skinCommand or 'skin', function(source, args)
     overlays = (storedSkin and storedSkin.overlays) or {}
   }
 
-  TriggerClientEvent('rp:skin:openCreator', targetSource, creatorPayload)
+  TriggerClientEvent('rp:skin:openCurrent', targetSource, creatorPayload)
 
   local actorUserId = getUserIdFromSource(source)
   local targetUserId = getUserIdFromSource(targetSource)
