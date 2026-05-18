@@ -63,21 +63,14 @@ local function updateCreatorCamera()
   local distance = tonumber(cfg.distance) or 3.2
   local height = tonumber(cfg.height) or 0.95
   local targetHeight = tonumber(cfg.targetHeight) or 0.58
-  local pitch = tonumber(cfg.pitch) or -9.0
+  local fov = tonumber(cfg.fov) or 58.0
 
   local coords = GetEntityCoords(ped)
-  local heading = GetEntityHeading(ped)
-  local headingRad = math.rad(heading)
-  local forwardX = -math.sin(headingRad)
-  local forwardY = math.cos(headingRad)
+  local camPos = GetOffsetFromEntityInWorldCoords(ped, 0.0, -distance, height)
 
-  local camX = coords.x + (forwardX * distance)
-  local camY = coords.y + (forwardY * distance)
-  local camZ = coords.z + height
-
-  SetCamCoord(creatorCam, camX, camY, camZ)
-  SetCamRot(creatorCam, pitch, 0.0, heading + 180.0, 2)
+  SetCamCoord(creatorCam, camPos.x, camPos.y, camPos.z)
   PointCamAtCoord(creatorCam, coords.x, coords.y, coords.z + targetHeight)
+  SetCamFov(creatorCam, fov)
   SetFocusPosAndVel(coords.x, coords.y, coords.z, 0.0, 0.0, 0.0)
 
   if not IsCamActive(creatorCam) then

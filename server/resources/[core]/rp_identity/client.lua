@@ -81,6 +81,8 @@ RegisterNUICallback('submitIdentity', function(data, cb)
 
   if currentMode == 'update' then
     TriggerServerEvent('rp:identity:update', submitPayload)
+  elseif currentMode == 'admin_create' then
+    TriggerServerEvent('rp:identity:adminSubmit', submitPayload)
   else
     TriggerServerEvent('rp:identity:create', submitPayload)
   end

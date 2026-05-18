@@ -4729,7 +4729,7 @@ RegisterCommand(RPAdminConfig.identityCommand or 'identity', function(source, ar
     return
   end
 
-  local success, result = exports.rp_identity:OpenIdentityEditor(targetSource, source)
+  local success, result = exports.rp_identity:OpenIdentityCreator(targetSource, source)
   if not success then
     notify(source, 'error', tostring(result or 'Identity-Menü konnte nicht geöffnet werden.'))
     return

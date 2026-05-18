@@ -39,12 +39,19 @@ window.addEventListener('message', (event) => {
   if (action === 'open') {
     setVisible(true);
     currentMode = data?.mode === 'update' ? 'update' : 'create';
+    if (data?.mode === 'admin_create') {
+      currentMode = 'admin_create';
+    }
 
     if (currentMode === 'update') {
       title.textContent = 'Personalausweis ändern';
       subtitle.textContent = 'Passe Name und Geburtsdaten deines Charakters an.';
       submitButton.textContent = 'Änderungen speichern';
       applyIdentityData(data?.identity);
+    } else {
+      title.textContent = 'Personalausweis erstellen';
+      subtitle.textContent = 'Bitte gib deine Charakterdaten ein.';
+      submitButton.textContent = 'Charakter erstellen';
     }
   }
   if (action === 'close') setVisible(false);
