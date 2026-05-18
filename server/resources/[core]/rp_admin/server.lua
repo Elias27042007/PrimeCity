@@ -730,26 +730,6 @@ local function getCachedJobGradeSuggestions()
   return map
 end
 
-local function buildPreviewText(values, maxCount)
-  if type(values) ~= 'table' or #values == 0 then
-    return ''
-  end
-
-  local limit = tonumber(maxCount) or 8
-  if limit < 1 then
-    limit = 1
-  end
-
-  local preview = {}
-  local capped = math.min(#values, limit)
-  for i = 1, capped do
-    preview[#preview + 1] = tostring(values[i])
-  end
-
-  local suffix = (#values > capped) and ', ...' or ''
-  return table.concat(preview, ', ') .. suffix
-end
-
 local function applyCommandParamOptions(commandName, params)
   local normalizedCommand = trim(tostring(commandName or '')):lower()
   local out = cloneParams(params)
@@ -773,35 +753,18 @@ local function applyCommandParamOptions(commandName, params)
 
   if normalizedCommand == giveItemCommand then
     if out[2] then
-      local values = getCachedItemSuggestions()
-      out[2].options = values
-      local preview = buildPreviewText(values, 10)
-      if preview ~= '' then
-        out[2].help = 'Vorschläge: ' .. preview
-      end
+      out[2].options = getCachedItemSuggestions()
     end
     return out
   end
 
   if normalizedCommand == setJobCommand then
     if out[2] then
-      local jobValues = getCachedJobSuggestions()
-      out[2].options = jobValues
-      local preview = buildPreviewText(jobValues, 10)
-      if preview ~= '' then
-        out[2].help = 'Vorschläge: ' .. preview
-      end
+      out[2].options = getCachedJobSuggestions()
     end
     if out[3] then
       local gradeMap = getCachedJobGradeSuggestions()
       out[3].optionsByToken = gradeMap
-      local sampleGrades = gradeMap.taxi or gradeMap.unemployed
-      local preview = buildPreviewText(sampleGrades, 8)
-      if preview ~= '' then
-        out[3].help = 'Ränge (Beispiel): ' .. preview
-      else
-        out[3].help = 'Rang als Zahl eingeben (z.B. 0, 1, 2).'
-      end
     end
     return out
   end
@@ -809,10 +772,6 @@ local function applyCommandParamOptions(commandName, params)
   if normalizedCommand == giveWeaponCommand then
     if out[2] then
       out[2].options = WEAPON_SUGGESTIONS
-      local preview = buildPreviewText(WEAPON_SUGGESTIONS, 10)
-      if preview ~= '' then
-        out[2].help = 'Vorschläge: ' .. preview
-      end
     end
     return out
   end
