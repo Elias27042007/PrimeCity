@@ -3,6 +3,7 @@ RPSkinConfig = {
   defaultFemaleModel = 'mp_f_freemode_01',
 
   componentSlots = {
+    tshirt = { component = 8, textureKey = 'tshirtTexture', default = 15 },
     torso = { component = 11, textureKey = 'torsoTexture', default = 15 },
     pants = { component = 4, textureKey = 'pantsTexture', default = 21 },
     shoes = { component = 6, textureKey = 'shoesTexture', default = 34 },

@@ -11,6 +11,8 @@ const steppers = Array.from(document.querySelectorAll('.stepper[data-path]'));
 const defaultSkin = {
   sex: 'm',
   components: {
+    tshirt: 15,
+    tshirtTexture: 0,
     torso: 15,
     torsoTexture: 0,
     pants: 21,

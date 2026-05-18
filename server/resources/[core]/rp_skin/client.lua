@@ -150,6 +150,8 @@ local function getSkinDefaults(sex)
   return {
     sex = resolvedSex,
     components = {
+      tshirt = 15,
+      tshirtTexture = 0,
       torso = 15,
       torsoTexture = 0,
       pants = 21,
