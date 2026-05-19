@@ -31,7 +31,7 @@ local function createBankBlips()
     SetBlipColour(blip, RPBankConfig.blip.color)
     SetBlipAsShortRange(blip, RPBankConfig.blip.shortRange == true)
     BeginTextCommandSetBlipName('STRING')
-    AddTextComponentString((bank.label or 'Bank'):gsub('%[E%]%s*', ''))
+    AddTextComponentString('Bank')
     EndTextCommandSetBlipName(blip)
     bankBlips[#bankBlips + 1] = blip
   end

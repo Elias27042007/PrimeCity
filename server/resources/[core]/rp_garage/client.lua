@@ -43,7 +43,7 @@ local function rebuildGarageVisuals(garages)
       SetBlipColour(blip, RPGarageConfig.blip.color)
       SetBlipAsShortRange(blip, RPGarageConfig.blip.shortRange == true)
       BeginTextCommandSetBlipName('STRING')
-      AddTextComponentString(g.label or 'Garage')
+      AddTextComponentString('Garage')
       EndTextCommandSetBlipName(blip)
       garageBlips[#garageBlips + 1] = blip
     end

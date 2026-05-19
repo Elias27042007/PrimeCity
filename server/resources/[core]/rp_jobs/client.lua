@@ -31,7 +31,7 @@ CreateThread(function()
       SetBlipColour(blip, RPJobsConfig.blip.color)
       SetBlipAsShortRange(blip, RPJobsConfig.blip.shortRange == true)
       BeginTextCommandSetBlipName('STRING')
-      AddTextComponentString(point.label:gsub('%[E%]%s*', ''))
+      AddTextComponentString('Dienstpunkt')
       EndTextCommandSetBlipName(blip)
       dutyBlips[#dutyBlips + 1] = blip
     end

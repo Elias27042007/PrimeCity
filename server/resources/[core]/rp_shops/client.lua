@@ -1,6 +1,20 @@
 local registered = false
 local shopBlips = {}
 
+local function getShopBlipGroupLabel(shop)
+  local shopType = tostring(shop and shop.type or ''):lower()
+  if shopType == '24_7' then
+    return '24/7 Shop'
+  end
+  if shopType == 'clothing' then
+    return 'Kleidung'
+  end
+  if shopType == 'vehicle' then
+    return 'Autohaus'
+  end
+  return 'Shop'
+end
+
 local function registerShopPoints(shops)
   for i = 1, #shops do
     local shop = shops[i]
@@ -37,7 +51,7 @@ local function createShopBlips(shops)
     SetBlipColour(blip, RPShopsConfig.blip.color)
     SetBlipAsShortRange(blip, RPShopsConfig.blip.shortRange == true)
     BeginTextCommandSetBlipName('STRING')
-    AddTextComponentString(shop.label or 'Shop')
+    AddTextComponentString(getShopBlipGroupLabel(shop))
     EndTextCommandSetBlipName(blip)
     shopBlips[#shopBlips + 1] = blip
 
