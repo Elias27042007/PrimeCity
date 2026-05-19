@@ -15,6 +15,7 @@ body { margin: 0; background: transparent; }
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 16px;
   background: radial-gradient(circle at 10% 10%, rgba(57,208,255,.18), transparent 44%), var(--bg);
 }
 
@@ -22,12 +23,17 @@ body { margin: 0; background: transparent; }
 
 .panel {
   width: min(840px, 94vw);
+  height: min(78vh, 760px);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 16px;
   background: var(--panel);
   color: var(--text);
   box-shadow: 0 20px 48px rgba(0,0,0,.45);
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
 }
 
 .head {
@@ -47,13 +53,12 @@ button {
 }
 
 .storeBtn {
-  margin: 10px 0;
   width: 100%;
+  flex: 0 0 auto;
 }
 
 .searchInput {
   width: 100%;
-  margin: 0 0 12px 0;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 10px;
   background: rgba(255, 255, 255, .06);
@@ -75,6 +80,28 @@ button {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 10px;
+  overflow: auto;
+  min-height: 0;
+  padding-right: 6px;
+}
+
+.list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: rgba(9, 14, 25, 0.55);
+  border-radius: 12px;
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(57, 208, 255, 0.9), rgba(123, 161, 255, 0.9));
+  border-radius: 12px;
+  border: 2px solid rgba(9, 14, 25, 0.65);
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(93, 219, 255, 0.98), rgba(149, 179, 255, 0.98));
 }
 
 .row {
