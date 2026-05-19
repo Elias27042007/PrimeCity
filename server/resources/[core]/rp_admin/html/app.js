@@ -1343,19 +1343,24 @@ function renderSettings() {
   const settings = state.data?.settings || {};
   const canManage = hasPerm('settings.shops.manage');
   const shopsRaw = settings.shops || [];
+  const garagesRaw = settings.garages || [];
   const selectedType = String(state.settingsShopType || '').trim();
   const draft = settings.draftCoords || {};
+  const garageDraftMarkerCoords = settings.garageDraftMarkerCoords || {};
+  const garageDraftSpawnCoords = settings.garageDraftSpawnCoords || {};
   const typeLabels = {
     '24_7': '24/7 Shop',
     vehicle: 'Autohaus',
-    clothing: 'Kleidungsshop'
+    clothing: 'Kleidungsshop',
+    garage: 'Garagen'
   };
 
   if (!selectedType) {
     const byTypeCount = {
       '24_7': shopsRaw.filter((shop) => String(shop.shop_type) === '24_7').length,
       vehicle: shopsRaw.filter((shop) => String(shop.shop_type) === 'vehicle').length,
-      clothing: shopsRaw.filter((shop) => String(shop.shop_type) === 'clothing').length
+      clothing: shopsRaw.filter((shop) => String(shop.shop_type) === 'clothing').length,
+      garage: garagesRaw.length
     };
 
     return `
@@ -1375,12 +1380,81 @@ function renderSettings() {
             <h4>Kleidungsläden</h4>
             <p>${byTypeCount.clothing} vorhanden</p>
           </div>
+          <div class="settings-type-card" data-action="selectSettingsType" data-type="garage">
+            <h4>Garagen</h4>
+            <p>${byTypeCount.garage} vorhanden</p>
+          </div>
         </div>
       </section>
     `;
   }
 
   const query = String(state.shopSearch || '').trim().toLowerCase();
+  if (selectedType === 'garage') {
+    const garages = query
+      ? garagesRaw.filter((garage) => {
+        const line = `${garage.id || ''} ${garage.garage_code || ''} ${garage.label || ''}`.toLowerCase();
+        return line.includes(query);
+      })
+      : garagesRaw;
+
+    return `
+      <section class="grid">
+        <div class="card">
+          <h3>Garagen</h3>
+          <div class="actions" style="margin-bottom:10px;">
+            <button class="btn ghost" id="settingsBackBtn" type="button">Zurück zur Bereichsauswahl</button>
+            <input id="shopSearchInput" type="text" placeholder="Suchen (ID, Code, Name)" value="${escapeHtml(state.shopSearch || '')}" />
+            <button class="btn primary" id="shopSearchBtn" type="button">Suchen</button>
+            <button class="btn ghost" id="shopSearchResetBtn" type="button">Zurücksetzen</button>
+          </div>
+          <div class="list">
+            ${rowHeader(['ID', 'Code', 'Name', 'Blip', 'Marker', 'Spawn', 'Aktion'], 'row-settings-garages')}
+            ${garages.map((garage) => `
+              <div class="row row-settings-garages" data-action="openGarageEditModal" data-garageid="${escapeHtml(garage.id)}">
+                <div>${escapeHtml(garage.id)}</div>
+                <div>${escapeHtml(garage.garage_code || '-')}</div>
+                <div>${escapeHtml(garage.label || '-')}</div>
+                <div>${Number(garage.blip_enabled) === 1 ? 'Ja' : 'Nein'}</div>
+                <div>${formatCoord(garage.pos_x)}, ${formatCoord(garage.pos_y)}, ${formatCoord(garage.pos_z)}</div>
+                <div>${formatCoord(garage.spawn_x)}, ${formatCoord(garage.spawn_y)}, ${formatCoord(garage.spawn_z)} | ${formatCoord(garage.spawn_heading)}</div>
+                <div class="actions">
+                  <button class="btn ghost" data-action="openGarageEditModal" data-garageid="${escapeHtml(garage.id)}">Bearbeiten</button>
+                </div>
+              </div>
+            `).join('') || renderEmptyRow(garagesRaw.length > 0 ? 'Keine Garagen für diese Suche.' : 'Noch keine Garagen vorhanden.', 'row-settings-garages')}
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Neue Garage erstellen</h3>
+          <div class="form-grid">
+            <input id="newGarageLabel" type="text" placeholder="Garagenname" />
+            <input id="newGarageCode" type="text" placeholder="Garage-Code (optional)" />
+            <div class="actions">
+              <label class="inline-check"><input id="newGarageBlipEnabled" type="checkbox" checked /> Blip anzeigen</label>
+              <label class="inline-check"><input id="newGarageEnabled" type="checkbox" checked /> Aktiv</label>
+            </div>
+            <label class="muted">Marker (Einparken/Ausparken)</label>
+            <input id="newGarageX" type="number" step="0.01" placeholder="Marker X" value="${escapeHtml(garageDraftMarkerCoords.x ?? '')}" />
+            <input id="newGarageY" type="number" step="0.01" placeholder="Marker Y" value="${escapeHtml(garageDraftMarkerCoords.y ?? '')}" />
+            <input id="newGarageZ" type="number" step="0.01" placeholder="Marker Z" value="${escapeHtml(garageDraftMarkerCoords.z ?? '')}" />
+            <label class="muted">Spawn</label>
+            <input id="newGarageSpawnX" type="number" step="0.01" placeholder="Spawn X" value="${escapeHtml(garageDraftSpawnCoords.x ?? '')}" />
+            <input id="newGarageSpawnY" type="number" step="0.01" placeholder="Spawn Y" value="${escapeHtml(garageDraftSpawnCoords.y ?? '')}" />
+            <input id="newGarageSpawnZ" type="number" step="0.01" placeholder="Spawn Z" value="${escapeHtml(garageDraftSpawnCoords.z ?? '')}" />
+            <input id="newGarageSpawnH" type="number" step="0.01" placeholder="Spawn Heading" value="${escapeHtml(garageDraftSpawnCoords.h ?? '')}" />
+          </div>
+          <div class="actions" style="margin-top:10px;">
+            ${canManage ? `<button class="btn ghost" id="useCurrentGarageMarkerCoordsBtn" type="button">Marker von aktueller Position</button>` : ''}
+            ${canManage ? `<button class="btn ghost" id="useCurrentGarageSpawnCoordsBtn" type="button">Spawn von aktueller Position</button>` : ''}
+            ${canManage ? `<button class="btn primary" id="createGarageBtn" type="button">Garage erstellen</button>` : ''}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
   const filteredByType = shopsRaw.filter((shop) => String(shop.shop_type) === selectedType);
   const shops = query
     ? filteredByType.filter((shop) => {
@@ -1804,13 +1878,30 @@ function bindCommonActions() {
     });
   });
 
-  contentEl.querySelectorAll('[data-action="selectSettingsType"]').forEach((el) => {
+  contentEl.querySelectorAll('[data-action="openGarageEditModal"]').forEach((el) => {
     el.addEventListener('dblclick', () => {
+      const garageId = Number(el.dataset.garageid || 0);
+      if (!garageId) return;
+      openGarageEditModal(garageId);
+    });
+    el.addEventListener('click', (event) => {
+      const target = event.target;
+      if (target && target.closest('button')) return;
+      const garageId = Number(el.dataset.garageid || 0);
+      if (!garageId) return;
+      openGarageEditModal(garageId);
+    });
+  });
+
+  contentEl.querySelectorAll('[data-action="selectSettingsType"]').forEach((el) => {
+    const openType = () => {
       state.settingsShopType = String(el.dataset.type || '').trim();
       state.shopSearch = '';
       render();
       setFooter(`${getShopTypeLabel(state.settingsShopType)} geöffnet.`);
-    });
+    };
+    el.addEventListener('dblclick', openType);
+    el.addEventListener('click', openType);
   });
 
   const useCurrentShopCoordsBtn = document.getElementById('useCurrentShopCoordsBtn');
@@ -1847,6 +1938,48 @@ function bindCommonActions() {
 
       await post('settings.shops.create', payload);
       setFooter('Shop wird erstellt ...');
+    });
+  }
+
+  const useCurrentGarageMarkerCoordsBtn = document.getElementById('useCurrentGarageMarkerCoordsBtn');
+  if (useCurrentGarageMarkerCoordsBtn) {
+    useCurrentGarageMarkerCoordsBtn.addEventListener('click', async () => {
+      await post('settings.garages.useCurrentMarkerCoords', {});
+      setFooter('Aktuelle Position wird als Garage-Marker übernommen ...');
+    });
+  }
+
+  const useCurrentGarageSpawnCoordsBtn = document.getElementById('useCurrentGarageSpawnCoordsBtn');
+  if (useCurrentGarageSpawnCoordsBtn) {
+    useCurrentGarageSpawnCoordsBtn.addEventListener('click', async () => {
+      await post('settings.garages.useCurrentSpawnCoords', {});
+      setFooter('Aktuelle Position wird als Garage-Spawn übernommen ...');
+    });
+  }
+
+  const createGarageBtn = document.getElementById('createGarageBtn');
+  if (createGarageBtn) {
+    createGarageBtn.addEventListener('click', async () => {
+      const payload = {
+        label: document.getElementById('newGarageLabel')?.value || '',
+        garageCode: document.getElementById('newGarageCode')?.value || '',
+        blipEnabled: (document.getElementById('newGarageBlipEnabled')?.checked !== false),
+        enabled: (document.getElementById('newGarageEnabled')?.checked !== false),
+        markerCoords: {
+          x: parseNullableNumber(document.getElementById('newGarageX')?.value),
+          y: parseNullableNumber(document.getElementById('newGarageY')?.value),
+          z: parseNullableNumber(document.getElementById('newGarageZ')?.value)
+        },
+        spawnCoords: {
+          x: parseNullableNumber(document.getElementById('newGarageSpawnX')?.value),
+          y: parseNullableNumber(document.getElementById('newGarageSpawnY')?.value),
+          z: parseNullableNumber(document.getElementById('newGarageSpawnZ')?.value),
+          h: parseNullableNumber(document.getElementById('newGarageSpawnH')?.value)
+        }
+      };
+
+      await post('settings.garages.create', payload);
+      setFooter('Garage wird erstellt ...');
     });
   }
 

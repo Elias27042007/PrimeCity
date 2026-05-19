@@ -307,13 +307,25 @@ body {
   background: rgba(67, 89, 146, 0.18);
 }
 
+.row.row-settings-garages {
+  grid-template-columns: 58px minmax(120px, 1fr) minmax(180px, 1.2fr) 70px minmax(180px, 1.2fr) minmax(220px, 1.6fr) minmax(120px, 0.8fr);
+}
+
+.row.row-settings-garages {
+  cursor: pointer;
+}
+
+.row.row-settings-garages:hover {
+  background: rgba(67, 89, 146, 0.18);
+}
+
 .row.row-shop-items {
   grid-template-columns: minmax(90px, 1.2fr) minmax(180px, 1.6fr) 90px minmax(96px, 0.8fr) minmax(100px, 0.9fr);
 }
 
 .settings-type-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
