@@ -4,6 +4,7 @@ local OpenSessions = {}
 local WorldDrops = {}
 local NextDropId = 1
 local UsableHandlers = {}
+local syncItemToDb
 local WEAPON_ITEM_ICON_FILES = {
   weapon_bat = 'weapon_bat_49.png',
   weapon_carbinerifle_mk2 = 'weapon_carbinerifle_mk2_29.png',
@@ -129,14 +130,79 @@ local function getCharacterId(source)
   return exports.rp_core:GetCharacterId(source)
 end
 
+local function resolveCharacterId(source, retries, delayMs)
+  retries = math.max(0, math.floor(tonumber(retries) or 0))
+  delayMs = math.max(0, math.floor(tonumber(delayMs) or 0))
+
+  for attempt = 0, retries do
+    local characterId = getCharacterId(source)
+    if characterId and tonumber(characterId) and tonumber(characterId) > 0 then
+      return tonumber(characterId)
+    end
+
+    local state = exports.rp_core:GetPlayerState(source)
+    if type(state) == 'table' and tonumber(state.characterId) and tonumber(state.characterId) > 0 then
+      return tonumber(state.characterId)
+    end
+
+    if attempt < retries and delayMs > 0 then
+      Wait(delayMs)
+    end
+  end
+
+  return nil
+end
+
 local function ensureCache(source)
   if not InventoryCache[source] then
     InventoryCache[source] = {
       characterId = nil,
-      items = {}
+      items = {},
+      loaded = false
     }
   end
   return InventoryCache[source]
+end
+
+local function loadCharacterInventoryIntoCache(source, ensureIdCard)
+  local cache = ensureCache(source)
+  local characterId = resolveCharacterId(source, 15, 100)
+  if not characterId then
+    return nil, 'Charakter nicht geladen.'
+  end
+
+  if cache.loaded and cache.characterId == characterId then
+    return cache
+  end
+
+  cache.characterId = characterId
+  cache.items = {}
+
+  local rows = MySQL.query.await(
+    [=[SELECT ii.item_name, ci.quantity
+       FROM character_inventory ci
+       INNER JOIN inventory_items ii ON ii.id = ci.item_id
+       WHERE ci.character_id = ?]=],
+    { characterId }
+  ) or {}
+
+  for i = 1, #rows do
+    cache.items[rows[i].item_name] = {
+      itemName = rows[i].item_name,
+      quantity = tonumber(rows[i].quantity) or 0
+    }
+  end
+
+  if ensureIdCard and not cache.items.id_card and ItemDefs.id_card then
+    cache.items.id_card = {
+      itemName = 'id_card',
+      quantity = 1
+    }
+    syncItemToDb(characterId, 'id_card', 1)
+  end
+
+  cache.loaded = true
+  return cache
 end
 
 local function recalcWeight(cache)
@@ -192,7 +258,7 @@ local function pushInventory(source)
   TriggerClientEvent('rp:inventory:updateUI', source, serializableInventory(cache))
 end
 
-local function syncItemToDb(characterId, itemName, quantity)
+syncItemToDb = function(characterId, itemName, quantity)
   local def = ItemDefs[itemName]
   if not def then return false end
 
@@ -310,9 +376,12 @@ local function addItem(source, itemName, quantity)
   local def = ItemDefs[itemName]
   if not def then return false, 'Unbekanntes Item.' end
 
-  local cache = ensureCache(source)
+  local cache, loadReason = loadCharacterInventoryIntoCache(source, true)
+  if not cache then
+    return false, loadReason or 'Charakter nicht geladen.'
+  end
+
   local charId = cache.characterId
-  if not charId then return false, 'Charakter nicht geladen.' end
 
   local row = cache.items[itemName] or { itemName = itemName, quantity = 0 }
   local newQuantity = row.quantity + quantity
@@ -331,7 +400,11 @@ local function removeItem(source, itemName, quantity)
   quantity = math.floor(tonumber(quantity) or 0)
   if quantity <= 0 then return false, 'Ungültige Menge.' end
 
-  local cache = ensureCache(source)
+  local cache, loadReason = loadCharacterInventoryIntoCache(source, true)
+  if not cache then
+    return false, loadReason or 'Charakter nicht geladen.'
+  end
+
   local row = cache.items[itemName]
   if not row or row.quantity < quantity then
     return false, 'Nicht genug Items.'
@@ -437,27 +510,9 @@ local function giveItem(source, target, itemName, quantity)
 end
 
 AddEventHandler('rp:inventory:loadCharacterInventory', function(source, characterId)
-  local cache = ensureCache(source)
-  cache.characterId = characterId
-  cache.items = {}
-
-  local rows = MySQL.query.await(
-    [=[SELECT ii.item_name, ci.quantity
-       FROM character_inventory ci
-       INNER JOIN inventory_items ii ON ii.id = ci.item_id
-       WHERE ci.character_id = ?]=],
-    { characterId }
-  )
-
-  for i = 1, #rows do
-    cache.items[rows[i].item_name] = {
-      itemName = rows[i].item_name,
-      quantity = tonumber(rows[i].quantity) or 0
-    }
-  end
-
-  if not cache.items.id_card then
-    addItem(source, 'id_card', 1)
+  local cache, reason = loadCharacterInventoryIntoCache(source, true)
+  if not cache then
+    print(('[rp_inventory] loadCharacterInventory fehlgeschlagen für %s: %s'):format(tostring(source), tostring(reason)))
   end
 end)
 
@@ -467,9 +522,12 @@ RegisterNetEvent('rp:inventory:requestOpen', function()
     return
   end
 
-  local cache = ensureCache(src)
-  if not cache.characterId then
+  local cache, reason = loadCharacterInventoryIntoCache(src, true)
+  if not cache then
     notify(src, 'error', 'Inventar', 'Inventar noch nicht geladen.')
+    if reason and reason ~= '' then
+      print(('[rp_inventory] requestOpen blockiert für %s: %s'):format(tostring(src), tostring(reason)))
+    end
     return
   end
 

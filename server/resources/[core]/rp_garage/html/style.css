@@ -91,17 +91,17 @@ button {
 }
 
 .vehicleIconWrap {
-  flex: 0 0 48px;
+  flex: 0 0 56px;
 }
 
 .vehicleIcon {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   object-fit: contain;
   border-radius: 0;
   border: 0;
   background: transparent;
-  flex: 0 0 48px;
+  flex: 0 0 56px;
   display: block;
 }
 
