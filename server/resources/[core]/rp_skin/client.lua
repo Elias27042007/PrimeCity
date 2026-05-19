@@ -86,8 +86,15 @@ local function updateCreatorCamera()
   end
 
   local distance = creatorCameraDistance
-  local height = tonumber(cfg.height) or 1.15
   local targetHeight = useFeatureFocus and (tonumber(cfg.featureTargetHeight) or tonumber(cfg.targetHeight) or -0.25) or (tonumber(cfg.targetHeight) or -0.25)
+  local height = tonumber(cfg.height) or 1.15
+  if useFeatureFocus then
+    local featureHeight = tonumber(cfg.featureHeight)
+    if featureHeight == nil then
+      featureHeight = targetHeight + 0.12
+    end
+    height = featureHeight
+  end
   local fov = useFeatureFocus and (tonumber(cfg.featureFov) or tonumber(cfg.fov) or 76.0) or (tonumber(cfg.fov) or 76.0)
 
   local heading = (creatorAnchor and creatorAnchor.heading) or GetEntityHeading(ped)

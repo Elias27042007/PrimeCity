@@ -55,6 +55,7 @@ RPSkinConfig = {
     featureMinDistance = 0.35,
     featureMaxDistance = 4.5,
     featureTargetHeight = 0.62,
+    featureHeight = 0.74,
     featureFov = 54.0
   }
 }
