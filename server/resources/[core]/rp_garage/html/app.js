@@ -3,6 +3,13 @@ const titleEl = document.getElementById('title');
 const listEl = document.getElementById('list');
 const closeBtn = document.getElementById('closeBtn');
 const storeBtn = document.getElementById('storeBtn');
+const searchInput = document.getElementById('searchInput');
+
+const state = {
+  garageLabel: 'Garage',
+  vehicles: [],
+  query: ''
+};
 
 const post = async (name, body = {}) => {
   const response = await fetch(`https://${GetParentResourceName()}/${name}`, {
@@ -13,11 +20,27 @@ const post = async (name, body = {}) => {
   return response.json();
 };
 
-const render = (data) => {
-  titleEl.textContent = data.garageLabel || 'Garage';
+const render = () => {
+  titleEl.textContent = state.garageLabel || 'Garage';
   listEl.innerHTML = '';
 
-  (data.vehicles || []).forEach((vehicle) => {
+  const query = state.query.trim().toLowerCase();
+  const filtered = (state.vehicles || []).filter((vehicle) => {
+    if (!query) return true;
+    const label = String(vehicle.label || '').toLowerCase();
+    const plate = String(vehicle.plate || '').toLowerCase();
+    return label.includes(query) || plate.includes(query);
+  });
+
+  if (filtered.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'Keine Fahrzeuge gefunden.';
+    listEl.appendChild(empty);
+    return;
+  }
+
+  filtered.forEach((vehicle) => {
     const row = document.createElement('div');
     row.className = 'row';
     row.innerHTML = `
@@ -39,7 +62,11 @@ window.addEventListener('message', (event) => {
   const { action, data } = event.data || {};
   if (action === 'open') {
     app.classList.remove('hidden');
-    render(data || {});
+    state.garageLabel = data?.garageLabel || 'Garage';
+    state.vehicles = Array.isArray(data?.vehicles) ? data.vehicles : [];
+    state.query = '';
+    searchInput.value = '';
+    render();
   }
   if (action === 'close') {
     app.classList.add('hidden');
@@ -52,4 +79,9 @@ closeBtn.addEventListener('click', async () => {
 
 storeBtn.addEventListener('click', async () => {
   await post('garage:storeVehicle');
+});
+
+searchInput.addEventListener('input', () => {
+  state.query = String(searchInput.value || '');
+  render();
 });
