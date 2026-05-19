@@ -3506,6 +3506,56 @@ local function resolveDefaultGarageId()
   return garageId and tonumber(garageId) or nil
 end
 
+local function buildVehicleLabelFromModel(modelName)
+  local value = trim(tostring(modelName or ''))
+  if value == '' then
+    return 'Unbekanntes Fahrzeug'
+  end
+
+  value = value:gsub('[_%-]+', ' '):gsub('%s+', ' ')
+  return value:gsub('(%S+)', function(word)
+    return word:sub(1, 1):upper() .. word:sub(2):lower()
+  end)
+end
+
+local function resolveVehicleDefinitionForGiveCar(modelName)
+  local row = MySQL.single.await(
+    'SELECT id, model, label, enabled FROM vehicles WHERE LOWER(model) = ? LIMIT 1',
+    { modelName }
+  )
+
+  if row and tonumber(row.id) then
+    if tonumber(row.enabled) == 1 then
+      return row
+    end
+
+    MySQL.update.await('UPDATE vehicles SET enabled = 1 WHERE id = ?', { tonumber(row.id) })
+    row.enabled = 1
+    return row
+  end
+
+  local fallbackLabel = buildVehicleLabelFromModel(modelName)
+  MySQL.query.await(
+    [=[INSERT INTO vehicles (model, label, price, category, enabled)
+       VALUES (?, ?, 0, 'civil', 1)
+       ON DUPLICATE KEY UPDATE
+         enabled = 1,
+         label = IF(label IS NULL OR label = '', VALUES(label), label)]=],
+    { modelName, fallbackLabel }
+  )
+
+  row = MySQL.single.await(
+    'SELECT id, model, label, enabled FROM vehicles WHERE LOWER(model) = ? LIMIT 1',
+    { modelName }
+  )
+
+  if row and tonumber(row.id) then
+    return row
+  end
+
+  return nil
+end
+
 local function parseTeleportCoordinates(args)
   if type(args) ~= 'table' then
     return nil, nil, nil, 'Nutzung: /tp x, y, z'
@@ -4340,12 +4390,9 @@ local function handleGiveCarCommand(source, args)
     return
   end
 
-  local vehicleDef = MySQL.single.await(
-    'SELECT id, model, label FROM vehicles WHERE LOWER(model) = ? AND enabled = 1 LIMIT 1',
-    { modelName }
-  )
+  local vehicleDef = resolveVehicleDefinitionForGiveCar(modelName)
   if not vehicleDef or not vehicleDef.id then
-    notify(source, 'error', ('Fahrzeugmodell "%s" nicht gefunden oder deaktiviert.'):format(modelName))
+    notify(source, 'error', ('Fahrzeugmodell "%s" konnte nicht angelegt werden.'):format(modelName))
     return
   end
 

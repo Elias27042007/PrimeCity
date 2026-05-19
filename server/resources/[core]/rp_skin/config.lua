@@ -28,7 +28,7 @@ RPSkinConfig = {
 
   camera = {
     rotateStep = 7,
-    distance = 5.4,
+    distance = 2.7,
     height = 1.15,
     targetHeight = -0.25,
     fov = 76.0

@@ -4,6 +4,7 @@ local currentMode = 'creator'
 local creatorViewLockThreadRunning = false
 local creatorCam = nil
 local creatorAnchor = nil
+local creatorCameraYawOffset = 0.0
 local cancelSnapshot = nil
 
 local function clampInt(value, minValue, maxValue)
@@ -56,6 +57,7 @@ local function destroyCreatorCamera()
 
   creatorCam = nil
   creatorAnchor = nil
+  creatorCameraYawOffset = 0.0
   ClearFocus()
 end
 
@@ -79,11 +81,27 @@ local function updateCreatorCamera()
   local targetHeight = tonumber(cfg.targetHeight) or -0.2
   local fov = tonumber(cfg.fov) or 58.0
 
-  AttachCamToEntity(creatorCam, ped, 0.0, distance, height, true)
-  PointCamAtEntity(creatorCam, ped, 0.0, 0.0, targetHeight, true)
-  SetCamFov(creatorCam, fov)
+  local heading = (creatorAnchor and creatorAnchor.heading) or GetEntityHeading(ped)
+  local headingRad = math.rad(heading)
+  local yawRad = math.rad(creatorCameraYawOffset or 0.0)
+
+  local forwardX = -math.sin(headingRad)
+  local forwardY = math.cos(headingRad)
+  local rightX = math.cos(headingRad)
+  local rightY = math.sin(headingRad)
+
+  local forwardDistance = distance * math.cos(yawRad)
+  local rightDistance = distance * math.sin(yawRad)
+
   local coords = GetEntityCoords(ped)
-  SetFocusPosAndVel(coords.x, coords.y, coords.z, 0.0, 0.0, 0.0)
+  local camX = coords.x + (forwardX * forwardDistance) + (rightX * rightDistance)
+  local camY = coords.y + (forwardY * forwardDistance) + (rightY * rightDistance)
+  local camZ = coords.z + height
+
+  SetCamCoord(creatorCam, camX, camY, camZ)
+  PointCamAtCoord(creatorCam, coords.x, coords.y, coords.z + targetHeight)
+  SetCamFov(creatorCam, fov)
+  SetFocusPosAndVel(coords.x, coords.y, coords.z + 0.5, 0.0, 0.0, 0.0)
 
   SetCamActive(creatorCam, true)
   RenderScriptCams(true, false, 0, true, true)
@@ -486,6 +504,7 @@ local function openCreator(defaults)
 
   currentSex = initial.sex
   currentMode = tostring(defaults and defaults.mode or 'creator')
+  creatorCameraYawOffset = 0.0
 
   if defaults and defaults.model and defaults.model ~= '' then
     loadModel(defaults.model)
@@ -600,6 +619,18 @@ RegisterNUICallback('rotateView', function(data, cb)
     cb({ ok = false })
     return
   end
+
+  local cfg = RPSkinConfig.camera or {}
+  local step = tonumber(cfg.rotateStep) or 7.0
+  local direction = tonumber(data and data.direction) or 0
+  local delta = tonumber(data and data.delta)
+
+  if not delta then
+    delta = direction * step
+  end
+
+  creatorCameraYawOffset = (creatorCameraYawOffset + delta) % 360.0
+  updateCreatorCamera()
 
   cb({ ok = true })
 end)

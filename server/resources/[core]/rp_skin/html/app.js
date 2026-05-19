@@ -224,9 +224,33 @@ const cancelSkin = async () => {
   }
 };
 
+const rotateView = async (direction) => {
+  try {
+    await post('rotateView', { direction });
+  } catch (_err) {
+    // ignore rotate transport errors
+  }
+};
+
 window.addEventListener('keydown', (event) => {
   if (app.classList.contains('hidden')) {
     return;
+  }
+
+  const key = event.key;
+  if (key === 'ArrowLeft' || key === 'ArrowRight') {
+    const active = document.activeElement;
+    const isTextField = active && (
+      active.tagName === 'INPUT' ||
+      active.tagName === 'SELECT' ||
+      active.tagName === 'TEXTAREA'
+    );
+
+    if (!isTextField) {
+      event.preventDefault();
+      rotateView(key === 'ArrowLeft' ? -1 : 1);
+      return;
+    }
   }
 
   if (event.key === 'Escape') {
