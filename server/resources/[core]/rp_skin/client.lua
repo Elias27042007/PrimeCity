@@ -315,8 +315,6 @@ local function buildRangeData(skin)
   local componentSlots = RPSkinConfig.componentSlots or {}
   local propSlots = RPSkinConfig.propSlots or {}
   local featureSlots = RPSkinConfig.featureSlots or {}
-  local incomingFeatures = type(incoming.features) == 'table' and incoming.features or {}
-  local hasHeadBlendFields = incomingFeatures.headBlendShapeFirst ~= nil
 
   local ranges = {
     components = {},
@@ -390,6 +388,8 @@ local function normalizeSkinData(payload)
   local componentSlots = RPSkinConfig.componentSlots or {}
   local propSlots = RPSkinConfig.propSlots or {}
   local featureSlots = RPSkinConfig.featureSlots or {}
+  local incomingFeatures = type(incoming.features) == 'table' and incoming.features or {}
+  local hasHeadBlendFields = incomingFeatures.headBlendShapeFirst ~= nil
 
   for key, slot in pairs(componentSlots) do
     out.components[key] = tonumber((incoming.components or {})[key]) or slot.default or defaults.components[key] or 0
