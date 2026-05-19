@@ -22,6 +22,7 @@ RPAdminConfig = RPAdminConfig or {
   giveItemCommand = 'giveitem',
   setJobCommand = 'setjob',
   giveWeaponCommand = 'giveweapon',
+  giveCarCommand = 'givecar',
   roleChangeKickCheckMs = 5000,
   maxListEntries = 200,
   defaultBanDurationHours = 24,
@@ -66,6 +67,7 @@ local SET_MONEY_PERMISSION_KEY = 'commands.setmoney'
 local GIVE_ITEM_PERMISSION_KEY = 'commands.giveitem'
 local SET_JOB_PERMISSION_KEY = 'commands.setjob'
 local GIVE_WEAPON_PERMISSION_KEY = 'commands.giveweapon'
+local GIVE_CAR_PERMISSION_KEY = 'commands.givecar'
 local IDENTITY_PERMISSION_KEY = 'commands.identity'
 local INFO_COMMAND_NAME = 'i'
 local ID_COMMAND_NAME = 'id'
@@ -209,6 +211,16 @@ local function getCommandCatalog()
         { name = 'modell', help = 'z.B. weapon_pistol' }
       },
       permission = GIVE_WEAPON_PERMISSION_KEY
+    },
+    {
+      name = getCommandName(RPAdminConfig.giveCarCommand, 'givecar'),
+      help = 'Gibt einem Spieler ein Fahrzeug für die Garage.',
+      params = {
+        { name = 'id', help = 'Server-ID des Spielers' },
+        { name = 'modellname', help = 'z.B. sultan' },
+        { name = 'kennzeichen', help = 'Optional, sonst auto-generiert' }
+      },
+      permission = GIVE_CAR_PERMISSION_KEY
     },
     {
       name = getCommandName(RPAdminConfig.deleteCommand, 'delete'),
@@ -1142,6 +1154,7 @@ local function bootstrapAdminData()
       ('commands.giveitem', 'GiveItem-Befehl', 'Darf /giveitem [id] [item] [anzahl] ausführen'),
       ('commands.setjob', 'SetJob-Befehl', 'Darf /setjob [id] [job] [rang] ausführen'),
       ('commands.giveweapon', 'GiveWeapon-Befehl', 'Darf /giveweapon [id] [modell] ausführen'),
+      ('commands.givecar', 'GiveCar-Befehl', 'Darf /givecar [id] [modellname] [kennzeichen] ausführen'),
       ('bans.view', 'Banns sehen', 'Darf Bannliste sehen'),
       ('bans.manage', 'Banns verwalten', 'Darf Banns aufheben'),
       ('tickets.view', 'Tickets sehen', 'Darf Tickets sehen'),
@@ -1164,9 +1177,9 @@ local function bootstrapAdminData()
     JOIN admin_permissions p ON (
       (r.role_name = 'supporter' AND p.permission_key IN ('admin.menu.open','dashboard.view','tickets.view','tickets.manage')) OR
       (r.role_name = 'moderator' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','bans.view','tickets.view','tickets.manage','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.name','commands.aduty','scripts.view','settings.view')) OR
-      (r.role_name = 'admin' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.identity','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage')) OR
-      (r.role_name = 'manager' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.identity','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage')) OR
-      (r.role_name = 'projektleitung' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.identity','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage','rights.view','rights.assign'))
+      (r.role_name = 'admin' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.identity','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','commands.givecar','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage')) OR
+      (r.role_name = 'manager' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.identity','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','commands.givecar','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage')) OR
+      (r.role_name = 'projektleitung' AND p.permission_key IN ('admin.menu.open','dashboard.view','players.view','players.kick','players.ban','vehicles.spawn.command','vehicles.delete.command','commands.heal','commands.revive','commands.repair','commands.reload','commands.tp','commands.tpm','commands.bring','commands.freeze','commands.skin','commands.identity','commands.noclip','commands.name','commands.aduty','commands.givemoney','commands.setmoney','commands.giveitem','commands.setjob','commands.giveweapon','commands.givecar','bans.view','bans.manage','tickets.view','tickets.manage','scripts.view','scripts.restart','settings.view','settings.shops.manage','rights.view','rights.assign'))
     )
   ]])
 
@@ -3415,6 +3428,84 @@ local function normalizeWeaponName(value)
   return weaponName
 end
 
+local function normalizeVehicleModelName(value)
+  local modelName = trim(tostring(value or '')):lower()
+  if modelName == '' then
+    return ''
+  end
+
+  if not modelName:match('^[%w_%-]+$') then
+    return ''
+  end
+
+  return modelName
+end
+
+local function normalizePlateInput(value)
+  local plate = trim(tostring(value or '')):upper()
+  if plate == '' then
+    return ''
+  end
+
+  plate = plate:gsub('%s+', ' ')
+  if not plate:match('^[A-Z0-9 ]+$') then
+    return nil
+  end
+
+  if #plate > 8 then
+    return nil
+  end
+
+  return plate
+end
+
+local function generateRandomPlate()
+  local chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  local nums = '0123456789'
+
+  local function pick(str)
+    local index = math.random(1, #str)
+    return str:sub(index, index)
+  end
+
+  return ('RP%s%s%s%s%s%s'):format(
+    pick(chars), pick(chars), pick(chars),
+    pick(nums), pick(nums), pick(nums)
+  )
+end
+
+local function resolveUniquePlate(requestedPlate)
+  if requestedPlate and requestedPlate ~= '' then
+    local exists = MySQL.scalar.await('SELECT id FROM owned_vehicles WHERE plate = ? LIMIT 1', { requestedPlate })
+    if exists then
+      return nil, 'Das Kennzeichen ist bereits vergeben.'
+    end
+    return requestedPlate
+  end
+
+  local tries = 0
+  while tries < 24 do
+    local plate = generateRandomPlate()
+    local exists = MySQL.scalar.await('SELECT id FROM owned_vehicles WHERE plate = ? LIMIT 1', { plate })
+    if not exists then
+      return plate
+    end
+    tries = tries + 1
+  end
+
+  return nil, 'Kennzeichen konnte nicht generiert werden.'
+end
+
+local function resolveDefaultGarageId()
+  local garageId = MySQL.scalar.await('SELECT id FROM garages WHERE enabled = 1 ORDER BY id ASC LIMIT 1')
+  if garageId then
+    return tonumber(garageId)
+  end
+
+  garageId = MySQL.scalar.await('SELECT id FROM garages ORDER BY id ASC LIMIT 1')
+  return garageId and tonumber(garageId) or nil
+end
+
 local function parseTeleportCoordinates(args)
   if type(args) ~= 'table' then
     return nil, nil, nil, 'Nutzung: /tp x, y, z'
@@ -4208,6 +4299,105 @@ local function handleGiveWeaponCommand(source, args)
   })
 end
 
+local function handleGiveCarCommand(source, args)
+  if source <= 0 then
+    print(('[rp_admin] Nutze den Befehl /%s <id> <modellname> [kennzeichen] im Spiel.'):format(RPAdminConfig.giveCarCommand or 'givecar'))
+    return
+  end
+
+  if not ensurePermission(source, GIVE_CAR_PERMISSION_KEY) then
+    return
+  end
+
+  if not canDo(source, 'command.givecar', 450) then
+    return
+  end
+
+  local targetSource = getTargetSourceFromCommandArg(source, args and args[1], ('/%s'):format(RPAdminConfig.giveCarCommand or 'givecar'), false)
+  if not targetSource then
+    return
+  end
+
+  if not canAffectTargetByHierarchy(source, targetSource, 'Du kannst gleich hohen oder höheren Rängen keine Fahrzeuge geben.') then
+    return
+  end
+
+  local modelName = normalizeVehicleModelName(args and args[2])
+  if modelName == '' then
+    notify(source, 'error', ('Nutzung: /%s <id> <modellname> [kennzeichen]'):format(RPAdminConfig.giveCarCommand or 'givecar'))
+    return
+  end
+
+  local requestedPlate = normalizePlateInput(args and args[3])
+  if requestedPlate == nil then
+    notify(source, 'error', 'Ungültiges Kennzeichen. Erlaubt sind A-Z, 0-9 und max. 8 Zeichen.')
+    return
+  end
+
+  local targetCharacterId = exports.rp_core:GetCharacterId(targetSource)
+  if not targetCharacterId then
+    notify(source, 'error', 'Der Zielspieler hat keinen geladenen Charakter.')
+    return
+  end
+
+  local vehicleDef = MySQL.single.await(
+    'SELECT id, model, label FROM vehicles WHERE LOWER(model) = ? AND enabled = 1 LIMIT 1',
+    { modelName }
+  )
+  if not vehicleDef or not vehicleDef.id then
+    notify(source, 'error', ('Fahrzeugmodell "%s" nicht gefunden oder deaktiviert.'):format(modelName))
+    return
+  end
+
+  local garageId = resolveDefaultGarageId()
+  if not garageId then
+    notify(source, 'error', 'Keine Garage verfügbar.')
+    return
+  end
+
+  local finalPlate, plateError = resolveUniquePlate(requestedPlate)
+  if not finalPlate then
+    notify(source, 'error', plateError or 'Kennzeichen konnte nicht gesetzt werden.')
+    return
+  end
+
+  local props = {
+    fuel = 100.0,
+    engineHealth = 1000.0,
+    bodyHealth = 1000.0
+  }
+
+  MySQL.insert.await(
+    [=[INSERT INTO owned_vehicles
+       (character_id, vehicle_id, plate, props_json, stored, garage_id, fuel, engine_health, body_health)
+       VALUES (?, ?, ?, ?, 1, ?, 100.0, 1000.0, 1000.0)]=],
+    {
+      targetCharacterId,
+      tonumber(vehicleDef.id),
+      finalPlate,
+      safeJson(props),
+      garageId
+    }
+  )
+
+  local actorUserId = getUserIdFromSource(source)
+  local targetUserId = getUserIdFromSource(targetSource)
+  auditAction(actorUserId, 'command.givecar', targetUserId, {
+    targetSource = targetSource,
+    modelName = tostring(vehicleDef.model or modelName),
+    plate = finalPlate,
+    garageId = garageId
+  })
+
+  local vehicleLabel = trim(tostring(vehicleDef.label or ''))
+  if vehicleLabel == '' then
+    vehicleLabel = tostring(vehicleDef.model or modelName)
+  end
+
+  notify(source, 'success', ('Fahrzeug %s (%s) wurde an %s (ID %s) vergeben und in die Garage gelegt.'):format(vehicleLabel, finalPlate, getProfileNameBySource(targetSource), targetSource))
+  notify(targetSource, 'info', ('Du hast ein Fahrzeug erhalten: %s (%s). Es liegt in deiner Garage.'):format(vehicleLabel, finalPlate))
+end
+
 RegisterCommand(RPAdminConfig.carCommand or 'car', function(source, args)
   if source <= 0 then
     print(('[rp_admin] Nutze den Befehl /%s <modell> im Spiel.'):format(RPAdminConfig.carCommand or 'car'))
@@ -4262,6 +4452,10 @@ end, false)
 
 RegisterCommand(RPAdminConfig.giveWeaponCommand or 'giveweapon', function(source, args)
   handleGiveWeaponCommand(source, args)
+end, false)
+
+RegisterCommand(RPAdminConfig.giveCarCommand or 'givecar', function(source, args)
+  handleGiveCarCommand(source, args)
 end, false)
 
 RegisterNetEvent('rp:admin:carSpawnResult', function(payload)

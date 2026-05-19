@@ -22,6 +22,7 @@ RPAdminConfig = {
   giveItemCommand = 'giveitem',
   setJobCommand = 'setjob',
   giveWeaponCommand = 'giveweapon',
+  giveCarCommand = 'givecar',
   roleChangeKickCheckMs = 5000,
   maxListEntries = 200,
   defaultBanDurationHours = 24,
