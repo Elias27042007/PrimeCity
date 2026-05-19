@@ -78,7 +78,30 @@ RegisterNUICallback('garage:storeVehicle', function(_, cb)
   local vehicle = GetVehiclePedIsIn(ped, false)
 
   if vehicle == 0 or GetPedInVehicleSeat(vehicle, -1) ~= ped then
-    cb({ ok = false, message = 'Du sitzt in keinem Fahrzeug als Fahrer.' })
+    vehicle = 0
+
+    local pedCoords = GetEntityCoords(ped)
+    local nearestVehicle = 0
+    local nearestDistance = 30.0
+    local allVehicles = GetGamePool('CVehicle')
+
+    for i = 1, #allVehicles do
+      local candidate = allVehicles[i]
+      if candidate and candidate ~= 0 and DoesEntityExist(candidate) then
+        local candidateCoords = GetEntityCoords(candidate)
+        local distance = #(pedCoords - candidateCoords)
+        if distance <= nearestDistance then
+          nearestDistance = distance
+          nearestVehicle = candidate
+        end
+      end
+    end
+
+    vehicle = nearestVehicle
+  end
+
+  if vehicle == 0 or not DoesEntityExist(vehicle) then
+    cb({ ok = false, message = 'Kein Fahrzeug in deiner Nähe (30m) gefunden.' })
     return
   end
 

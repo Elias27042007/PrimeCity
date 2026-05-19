@@ -196,7 +196,8 @@ RegisterNetEvent('rp:garage:spawnVehicle', function(vehicleId)
   })
 
   notify(src, 'success', 'Garage', ('Fahrzeug %s ausgeparkt.'):format(row.plate))
-  openGarage(src, session.garageId)
+  OpenSession[src] = nil
+  TriggerClientEvent('rp:garage:closeUI', src)
 end)
 
 RegisterNetEvent('rp:garage:storeVehicle', function(data)
