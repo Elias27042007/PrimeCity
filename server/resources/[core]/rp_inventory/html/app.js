@@ -10,6 +10,10 @@ const state = {
   nearbyPlayers: []
 };
 
+const closeInventory = async () => {
+  await post('inventory:close');
+};
+
 const post = async (name, body = {}) => {
   const response = await fetch(`https://${GetParentResourceName()}/${name}`, {
     method: 'POST',
@@ -170,9 +174,20 @@ window.addEventListener('message', async (event) => {
 });
 
 closeBtn.addEventListener('click', async () => {
-  await post('inventory:close');
+  await closeInventory();
 });
 
 refreshNearbyBtn.addEventListener('click', async () => {
   await refreshNearbyPlayers();
+});
+
+window.addEventListener('keydown', async (event) => {
+  if (event.key !== 'Escape') {
+    return;
+  }
+  if (app.classList.contains('hidden')) {
+    return;
+  }
+  event.preventDefault();
+  await closeInventory();
 });

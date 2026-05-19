@@ -4,6 +4,100 @@ local OpenSessions = {}
 local WorldDrops = {}
 local NextDropId = 1
 local UsableHandlers = {}
+local WEAPON_ITEM_ICON_FILES = {
+  weapon_bat = 'weapon_bat_49.png',
+  weapon_carbinerifle_mk2 = 'weapon_carbinerifle_mk2_29.png',
+  weapon_ceramicpistol = 'weapon_ceramicpistol_46.png',
+  weapon_combat_knife = 'weapon_combat_knife_43.png',
+  weapon_compactrifle = 'weapon_compactrifle_36.png',
+  weapon_dagger = 'weapon_dagger_24.png',
+  weapon_doubleaction = 'weapon_doubleaction_34.png',
+  weapon_fireextinguisher = 'weapon_fireextinguisher_40.png',
+  weapon_flashbang = 'weapon_flashbang_39.png',
+  weapon_flashlight = 'weapon_flashlight_31.png',
+  weapon_gadgetpistol = 'weapon_gadgetpistol_32.png',
+  weapon_gas = 'weapon_gas_48.png',
+  weapon_glock19 = 'weapon_glock19_28.png',
+  weapon_goodnightbat = 'weapon_goodnightbat_41.png',
+  weapon_knuckle = 'weapon_knuckle_23.png',
+  weapon_m45a1 = 'weapon_m45a1_45.png',
+  weapon_machete = 'weapon_machete_38.png',
+  weapon_marksmanrifle_mk2 = 'weapon_marksmanrifle_mk2_26.png',
+  weapon_microsmg = 'weapon_microsmg_42.png',
+  weapon_navyrevolver = 'weapon_navyrevolver_33.png',
+  weapon_nightstick = 'weapon_nightstick_47.png',
+  weapon_pistol = 'weapon_pistol_35.png',
+  weapon_pistol2 = 'weapon_pistol2_37.png',
+  weapon_pistol_mk2 = 'weapon_pistol_mk2_27.png',
+  weapon_pistol_mk2_2 = 'weapon_pistol_mk2_2_30.png',
+  weapon_pistol_wm29 = 'weapon_pistol_WM29_44.png',
+  weapon_revolver = 'weapon_revolver_9.png',
+  weapon_revolver_mk2 = 'weapon_revolver_mk2_18.png',
+  weapon_sawnoffshotgun = 'weapon_sawnoffshotgun_11.png',
+  weapon_smg = 'weapon_smg_14.png',
+  weapon_smokegrenade = 'weapon_smokegrenade_10.png',
+  weapon_sniperrifle = 'weapon_sniperrifle_15.png',
+  weapon_specialcarbine = 'weapon_specialcarbine_25.png',
+  weapon_specialcarbine_mk2 = 'weapon_specialcarbine_mk2_12.png',
+  weapon_stungun = 'weapon_stungun_20.png',
+  weapon_stungun_blue = 'weapon_stungun_blue_22.png',
+  weapon_stungun_red = 'weapon_stungun_red_21.png',
+  weapon_stungun_yellow = 'weapon_stungun_yellow_13.png',
+  weapon_switchblade = 'weapon_switchblade_8.png',
+  weapon_switchblade2 = 'weapon_switchblade2_17.png',
+  weapon_ump45 = 'weapon_ump45_16.png',
+  weapon_vector = 'weapon_vector_7.png',
+  weapon_vintagepistol = 'weapon_vintagepistol_19.png',
+}
+
+local function isWeaponItem(itemName)
+  return WEAPON_ITEM_ICON_FILES[tostring(itemName or ''):lower()] ~= nil
+end
+
+local function toWeaponItemName(value)
+  local itemName = tostring(value or ''):lower():gsub('%s+', '_')
+  if itemName == '' then
+    return ''
+  end
+  if itemName:sub(1, 7) ~= 'weapon_' then
+    itemName = 'weapon_' .. itemName
+  end
+  if not itemName:match('^weapon_[%w_]+$') then
+    return ''
+  end
+  return itemName
+end
+
+local function weaponItemLabel(itemName)
+  local label = tostring(itemName or ''):lower():gsub('^weapon_', ''):gsub('_', ' ')
+  if label == '' then
+    label = 'Waffe'
+  end
+  label = label:gsub('(%S+)', function(part)
+    return part:sub(1, 1):upper() .. part:sub(2)
+  end)
+  return label
+end
+
+local function syncWeaponItemsToDb()
+  for itemName in pairs(WEAPON_ITEM_ICON_FILES) do
+    MySQL.query.await(
+      [=[INSERT INTO inventory_items (item_name, label, description, stackable, max_stack, weight, usable)
+         VALUES (?, ?, ?, 0, 1, 1700, 1)
+         ON DUPLICATE KEY UPDATE
+           label = VALUES(label),
+           description = VALUES(description),
+           stackable = 0,
+           max_stack = 1,
+           usable = 1]=],
+      {
+        itemName,
+        weaponItemLabel(itemName),
+        'Waffe als Inventar-Item'
+      }
+    )
+  end
+end
 
 local function notify(source, ntype, title, message)
   TriggerClientEvent('rp:notify', source, {
@@ -57,6 +151,11 @@ local function recalcWeight(cache)
 end
 
 local function itemIconPath(itemName)
+  local key = tostring(itemName or ''):lower()
+  local iconFile = WEAPON_ITEM_ICON_FILES[key]
+  if iconFile then
+    return ('icons/items/%s'):format(iconFile)
+  end
   return ('icons/items/%s.png'):format(tostring(itemName or 'unknown'))
 end
 
@@ -261,16 +360,21 @@ local function useItem(source, itemName, quantity)
     return false, 'Ungültige Menge.'
   end
 
-  local ok = removeItem(source, itemName, quantity)
-  if not ok then
-    return false, 'Item nicht vorhanden.'
+  local consumeItem = not isWeaponItem(itemName)
+  if consumeItem then
+    local ok = removeItem(source, itemName, quantity)
+    if not ok then
+      return false, 'Item nicht vorhanden.'
+    end
   end
 
   local handler = UsableHandlers[itemName]
   if handler then
     local handlerOk, handlerError = pcall(handler, source, quantity, def)
     if not handlerOk then
-      addItem(source, itemName, quantity)
+      if consumeItem then
+        addItem(source, itemName, quantity)
+      end
       return false, ('Nutzung fehlgeschlagen: %s'):format(tostring(handlerError))
     end
   end
@@ -282,6 +386,8 @@ local function useItem(source, itemName, quantity)
     notify(source, 'success', 'Inventar', ('Du hast %sx Wasser getrunken.'):format(quantity))
   elseif itemName == 'bread' then
     notify(source, 'success', 'Inventar', ('Du hast %sx Brot gegessen.'):format(quantity))
+  elseif isWeaponItem(itemName) then
+    notify(source, 'success', 'Inventar', ('%s ausgerüstet.'):format(def.label))
   else
     notify(source, 'info', 'Inventar', ('%sx %s wurde verwendet.'):format(quantity, def.label))
   end
@@ -501,6 +607,21 @@ exports('RegisterUsableHandler', function(itemName, callback)
   UsableHandlers[itemName] = callback
   return true
 end)
+exports('IsAllowedWeaponItem', function(itemName)
+  itemName = toWeaponItemName(itemName)
+  if itemName == '' then
+    return false
+  end
+  return isWeaponItem(itemName)
+end)
+exports('GetAllowedWeaponItems', function()
+  local out = {}
+  for itemName in pairs(WEAPON_ITEM_ICON_FILES) do
+    out[#out + 1] = itemName
+  end
+  table.sort(out)
+  return out
+end)
 exports('GetInventory', function(source)
   local cache = InventoryCache[source]
   return cache and cache.items or {}
@@ -511,6 +632,7 @@ AddEventHandler('onResourceStart', function(resourceName)
     return
   end
 
+  syncWeaponItemsToDb()
   loadItemDefs()
   WorldDrops = {}
   NextDropId = 1

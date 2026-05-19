@@ -1,5 +1,31 @@
 local open = false
 local activeDrops = {}
+local weaponUseAliases = {
+  WEAPON_GAS = 'WEAPON_BZGAS',
+  WEAPON_PISTOL2 = 'WEAPON_COMBATPISTOL'
+}
+
+local function notifyLocal(ntype, message)
+  TriggerEvent('rp:notify', {
+    type = ntype or 'info',
+    title = 'Inventar',
+    message = tostring(message or '')
+  })
+end
+
+local function toWeaponModelFromItem(itemName)
+  local value = tostring(itemName or ''):upper():gsub('%s+', '_')
+  if value == '' then
+    return nil
+  end
+  if value:sub(1, 7) ~= 'WEAPON_' then
+    value = 'WEAPON_' .. value
+  end
+  if not value:match('^WEAPON_[A-Z0-9_]+$') then
+    return nil
+  end
+  return weaponUseAliases[value] or value
+end
 
 local function normalizeDrops(payload)
   activeDrops = {}
@@ -49,6 +75,34 @@ end)
 
 RegisterNetEvent('rp:inventory:updateDrops', function(payload)
   normalizeDrops(payload)
+end)
+
+RegisterNetEvent('rp:inventory:itemUsed', function(itemName, quantity)
+  itemName = tostring(itemName or ''):lower()
+  if itemName:sub(1, 7) ~= 'weapon_' then
+    return
+  end
+
+  local modelName = toWeaponModelFromItem(itemName)
+  if not modelName then
+    notifyLocal('error', 'Ungültiges Waffen-Item.')
+    return
+  end
+
+  local weaponHash = GetHashKey(modelName)
+  if not IsWeaponValid(weaponHash) then
+    notifyLocal('error', ('Waffenmodell nicht gefunden: %s'):format(modelName))
+    return
+  end
+
+  local ped = PlayerPedId()
+  local ammo = math.max(1, math.floor(tonumber(quantity) or 1))
+  if ammo < 30 then
+    ammo = 250
+  end
+
+  GiveWeaponToPed(ped, weaponHash, ammo, false, true)
+  SetCurrentPedWeapon(ped, weaponHash, true)
 end)
 
 CreateThread(function()

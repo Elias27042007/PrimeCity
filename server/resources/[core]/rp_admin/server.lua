@@ -53,7 +53,6 @@ local ActiveRoleFingerprint = {}
 local PendingRepairRequests = {}
 local PendingDeleteRequests = {}
 local PendingTpmRequests = {}
-local PendingGiveWeaponRequests = {}
 local FrozenPlayers = {}
 local PanelOpenMode = {}
 local AdutyStates = {}
@@ -72,24 +71,11 @@ local IDENTITY_PERMISSION_KEY = 'commands.identity'
 local INFO_COMMAND_NAME = 'i'
 local ID_COMMAND_NAME = 'id'
 local RANK_COMMAND_NAME = 'rang'
-local WEAPON_SUGGESTIONS = {
-  'weapon_knife',
-  'weapon_nightstick',
-  'weapon_pistol',
-  'weapon_combatpistol',
-  'weapon_pistol50',
-  'weapon_smg',
-  'weapon_carbinerifle',
-  'weapon_pumpshotgun',
-  'weapon_mg',
-  'weapon_sniperrifle',
-  'weapon_grenade',
-  'weapon_stungun'
-}
 local CommandAutocompleteCache = {
   items = { values = {}, expiresAt = 0 },
   jobs = { values = {}, expiresAt = 0 },
-  jobGrades = { values = {}, expiresAt = 0 }
+  jobGrades = { values = {}, expiresAt = 0 },
+  weapons = { values = {}, expiresAt = 0 }
 }
 
 local function trim(value)
@@ -205,10 +191,10 @@ local function getCommandCatalog()
     },
     {
       name = getCommandName(RPAdminConfig.giveWeaponCommand, 'giveweapon'),
-      help = 'Gibt einem Spieler eine Waffe.',
+      help = 'Gibt einem Spieler ein Waffen-Item.',
       params = {
         { name = 'id', help = 'Server-ID des Spielers' },
-        { name = 'modell', help = 'z.B. weapon_pistol' }
+        { name = 'waffen_item', help = 'z.B. weapon_pistol' }
       },
       permission = GIVE_WEAPON_PERMISSION_KEY
     },
@@ -742,6 +728,40 @@ local function getCachedJobGradeSuggestions()
   return map
 end
 
+local function getCachedWeaponSuggestions()
+  if CommandAutocompleteCache.weapons.expiresAt > os.time() then
+    return CommandAutocompleteCache.weapons.values
+  end
+
+  local values = {}
+  local ok, exported = pcall(function()
+    return exports.rp_inventory:GetAllowedWeaponItems()
+  end)
+
+  if ok and type(exported) == 'table' then
+    for i = 1, #exported do
+      values[#values + 1] = tostring(exported[i] or '')
+    end
+  else
+    local rows = MySQL.query.await(
+      [=[SELECT item_name
+         FROM inventory_items
+         WHERE item_name LIKE 'weapon_%'
+         ORDER BY item_name ASC
+         LIMIT 500]=]
+    ) or {}
+
+    for i = 1, #rows do
+      values[#values + 1] = rows[i].item_name
+    end
+  end
+
+  values = normalizeAutocompleteValues(values)
+  CommandAutocompleteCache.weapons.values = values
+  CommandAutocompleteCache.weapons.expiresAt = os.time() + 45
+  return values
+end
+
 local function applyCommandParamOptions(commandName, params)
   local normalizedCommand = trim(tostring(commandName or '')):lower()
   local out = cloneParams(params)
@@ -783,7 +803,7 @@ local function applyCommandParamOptions(commandName, params)
 
   if normalizedCommand == giveWeaponCommand then
     if out[2] then
-      out[2].options = WEAPON_SUGGESTIONS
+      out[2].options = getCachedWeaponSuggestions()
     end
     return out
   end
@@ -3461,17 +3481,17 @@ local function parseNonNegativeInteger(rawValue)
 end
 
 local function normalizeWeaponName(value)
-  local weaponName = trim(tostring(value or '')):upper()
+  local weaponName = trim(tostring(value or '')):lower()
   if weaponName == '' then
     return ''
   end
 
   weaponName = weaponName:gsub('%s+', '_')
-  if weaponName:sub(1, 7) ~= 'WEAPON_' then
-    weaponName = 'WEAPON_' .. weaponName
+  if weaponName:sub(1, 7) ~= 'weapon_' then
+    weaponName = 'weapon_' .. weaponName
   end
 
-  if not weaponName:match('^WEAPON_[A-Z0-9_]+$') then
+  if not weaponName:match('^weapon_[%w_]+$') then
     return ''
   end
 
@@ -4388,15 +4408,34 @@ local function handleGiveWeaponCommand(source, args)
     return
   end
 
-  PendingGiveWeaponRequests[targetSource] = {
-    actorSource = source,
-    weaponName = weaponName,
-    expiresAt = nowMs() + 7000
-  }
+  local isAllowed = false
+  local okExport, exportResult = pcall(function()
+    return exports.rp_inventory:IsAllowedWeaponItem(weaponName)
+  end)
+  if okExport and exportResult == true then
+    isAllowed = true
+  end
 
-  TriggerClientEvent('rp:admin:giveWeapon', targetSource, {
+  if not isAllowed then
+    notify(source, 'error', 'Diese Waffe ist nicht erlaubt. Es sind nur Waffen mit hochgeladenem Icon erlaubt.')
+    return
+  end
+
+  local added, addReason = exports.rp_inventory:AddItem(targetSource, weaponName, 1)
+  if not added then
+    notify(source, 'error', addReason or 'Waffen-Item konnte nicht vergeben werden.')
+    return
+  end
+
+  local actorUserId = getUserIdFromSource(source)
+  local targetUserId = getUserIdFromSource(targetSource)
+  auditAction(actorUserId, 'command.giveweapon', targetUserId, {
+    targetSource = targetSource,
     weaponName = weaponName
   })
+
+  notify(source, 'success', ('Waffen-Item %s wurde an %s (ID %s) vergeben.'):format(weaponName, getProfileNameBySource(targetSource), targetSource))
+  notify(targetSource, 'info', ('Du hast das Waffen-Item %s erhalten. Öffne dein Inventar und nutze es zum Ausrüsten.'):format(weaponName))
 end
 
 local function handleGiveCarCommand(source, args)
@@ -4572,49 +4611,6 @@ RegisterNetEvent('rp:admin:carSpawnResult', function(payload)
   end
 
   notify(src, ok and 'success' or 'error', message)
-end)
-
-RegisterNetEvent('rp:admin:giveWeaponResult', function(payload)
-  local targetSource = source
-  local pending = PendingGiveWeaponRequests[targetSource]
-  PendingGiveWeaponRequests[targetSource] = nil
-
-  if not pending or pending.expiresAt < nowMs() then
-    return
-  end
-
-  local actorSource = tonumber(pending.actorSource) or 0
-  if actorSource <= 0 or not GetPlayerName(actorSource) then
-    return
-  end
-
-  if not hasPermission(actorSource, GIVE_WEAPON_PERMISSION_KEY) then
-    return
-  end
-
-  local ok = type(payload) == 'table' and payload.ok == true
-  if not ok then
-    local failMessage = 'Waffe konnte nicht vergeben werden.'
-    if type(payload) == 'table' then
-      local custom = trim(tostring(payload.message or ''))
-      if custom ~= '' then
-        failMessage = custom
-      end
-    end
-    notify(actorSource, 'error', failMessage)
-    return
-  end
-
-  local weaponName = pending.weaponName or 'WEAPON_UNARMED'
-  local actorUserId = getUserIdFromSource(actorSource)
-  local targetUserId = getUserIdFromSource(targetSource)
-  auditAction(actorUserId, 'command.giveweapon', targetUserId, {
-    targetSource = targetSource,
-    weaponName = weaponName
-  })
-
-  notify(actorSource, 'success', ('Waffe %s wurde an %s (ID %s) vergeben.'):format(weaponName, getProfileNameBySource(targetSource), targetSource))
-  notify(targetSource, 'info', ('Du hast die Waffe %s erhalten.'):format(weaponName))
 end)
 
 RegisterNetEvent('rp:admin:deleteVehiclesResult', function(payload)
@@ -5377,7 +5373,6 @@ AddEventHandler('playerDropped', function()
   PendingRepairRequests[src] = nil
   PendingDeleteRequests[src] = nil
   PendingTpmRequests[src] = nil
-  PendingGiveWeaponRequests[src] = nil
   FrozenPlayers[src] = nil
   AdutyStates[src] = nil
   NameOverlayStates[src] = nil
