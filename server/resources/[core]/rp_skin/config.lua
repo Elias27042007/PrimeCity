@@ -29,10 +29,14 @@ RPSkinConfig = {
   },
 
   featureSlots = {
-    faceShape = { default = 0, min = -100, max = 100, type = 'faceFeature', index = 0 },
+    headBlendShapeFirst = { default = 21, min = 0, max = 45, type = 'headBlendParent' },
+    headBlendShapeSecond = { default = 0, min = 0, max = 45, type = 'headBlendParent' },
+    headBlendSkinFirst = { default = 21, min = 0, max = 45, type = 'headBlendParent' },
+    headBlendSkinSecond = { default = 0, min = 0, max = 45, type = 'headBlendParent' },
+    faceShape = { default = 50, min = 0, max = 100, type = 'headBlendShapeMix' },
     eyes = { default = 0, min = -100, max = 100, type = 'faceFeature', index = 11 },
-    eyeColor = { default = 0, min = 0, max = 31, type = 'eyeColor' },
-    bodyShape = { default = 0, min = -100, max = 100, type = 'faceFeature', index = 19 },
+    eyeColor = { default = 0, min = 0, max = 30, type = 'eyeColor' },
+    bodyShape = { default = 50, min = 0, max = 100, type = 'headBlendSkinMix' },
     eyebrows = { default = -1, min = -1, max = 33, type = 'overlay', index = 2, colorType = 1 },
     eyebrowsColor = { default = 0, min = 0, max = 63, type = 'overlayColor', overlay = 2, colorType = 1 }
   },

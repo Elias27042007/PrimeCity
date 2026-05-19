@@ -20,9 +20,53 @@ const setVisible = (visible) => {
   }
 };
 
+const pad2 = (value) => String(value).padStart(2, '0');
+
 const toInputDate = (value) => {
   const text = String(value || '').trim();
-  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : '';
+  if (!text) return '';
+
+  // Accept direct HTML date format.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return text;
+  }
+
+  // Accept DB datetime / ISO datetime and cut to date part.
+  const isoLike = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/);
+  if (isoLike) {
+    return `${isoLike[1]}-${isoLike[2]}-${isoLike[3]}`;
+  }
+
+  // Accept dd.mm.yyyy
+  const dotFormat = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (dotFormat) {
+    const day = Number(dotFormat[1]);
+    const month = Number(dotFormat[2]);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      return `${dotFormat[3]}-${pad2(month)}-${pad2(day)}`;
+    }
+  }
+
+  // Accept mm/dd/yyyy or dd/mm/yyyy (heuristic).
+  const slashFormat = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashFormat) {
+    let first = Number(slashFormat[1]);
+    let second = Number(slashFormat[2]);
+    const year = slashFormat[3];
+
+    let month = first;
+    let day = second;
+    if (first > 12 && second <= 12) {
+      month = second;
+      day = first;
+    }
+
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      return `${year}-${pad2(month)}-${pad2(day)}`;
+    }
+  }
+
+  return '';
 };
 
 const applyIdentityData = (identity) => {

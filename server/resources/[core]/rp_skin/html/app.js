@@ -45,10 +45,14 @@ const defaultSkin = {
     eyebrowsColor: 0
   },
   features: {
-    faceShape: 0,
+    headBlendShapeFirst: 21,
+    headBlendShapeSecond: 0,
+    headBlendSkinFirst: 21,
+    headBlendSkinSecond: 0,
+    faceShape: 50,
     eyes: 0,
     eyeColor: 0,
-    bodyShape: 0,
+    bodyShape: 50,
     eyebrows: -1,
     eyebrowsColor: 0
   }

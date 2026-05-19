@@ -249,10 +249,14 @@ local function getSkinDefaults(sex)
       hairHighlight = 0
     },
     features = {
-      faceShape = 0,
+      headBlendShapeFirst = 21,
+      headBlendShapeSecond = 0,
+      headBlendSkinFirst = 21,
+      headBlendSkinSecond = 0,
+      faceShape = 50,
       eyes = 0,
       eyeColor = 0,
-      bodyShape = 0,
+      bodyShape = 50,
       eyebrows = -1,
       eyebrowsColor = 0
     }
@@ -311,6 +315,8 @@ local function buildRangeData(skin)
   local componentSlots = RPSkinConfig.componentSlots or {}
   local propSlots = RPSkinConfig.propSlots or {}
   local featureSlots = RPSkinConfig.featureSlots or {}
+  local incomingFeatures = type(incoming.features) == 'table' and incoming.features or {}
+  local hasHeadBlendFields = incomingFeatures.headBlendShapeFirst ~= nil
 
   local ranges = {
     components = {},
@@ -419,13 +425,17 @@ local function normalizeSkinData(payload)
       defaultValue = 0
     end
 
-    local incomingValue = tonumber((incoming.features or {})[key])
+    local incomingValue = tonumber(incomingFeatures[key])
     if incomingValue == nil then
       if key == 'eyebrows' then
         incomingValue = tonumber((incoming.overlays or {}).eyebrows)
       elseif key == 'eyebrowsColor' then
         incomingValue = tonumber((incoming.overlays or {}).eyebrowsColor)
       end
+    end
+
+    if not hasHeadBlendFields and (key == 'faceShape' or key == 'bodyShape') and incomingValue ~= nil then
+      incomingValue = math.floor(((incomingValue + 100) / 2) + 0.5)
     end
 
     out.features[key] = incomingValue or defaultValue
@@ -439,6 +449,7 @@ end
 local function applySkinData(payload)
   local ped = PlayerPedId()
   local skin = normalizeSkinData(payload)
+  local featureSlots = RPSkinConfig.featureSlots or {}
 
   local componentSlots = RPSkinConfig.componentSlots or {}
   for key, slot in pairs(componentSlots) do
@@ -479,6 +490,45 @@ local function applySkinData(payload)
     end
   end
 
+  local function clampFeatureValue(key, fallback)
+    local slot = featureSlots[key] or {}
+    local minValue = tonumber(slot.min) or -100
+    local maxValue = tonumber(slot.max) or 100
+    local defaultValue = tonumber(slot.default)
+    if defaultValue == nil then
+      defaultValue = minValue
+    end
+
+    local value = tonumber(skin.features[key])
+    if value == nil then
+      value = fallback
+    end
+    value = clampInt(value or defaultValue, minValue, maxValue)
+    skin.features[key] = value
+    return value
+  end
+
+  local headBlendShapeFirst = clampFeatureValue('headBlendShapeFirst', 21)
+  local headBlendShapeSecond = clampFeatureValue('headBlendShapeSecond', 0)
+  local headBlendSkinFirst = clampFeatureValue('headBlendSkinFirst', 21)
+  local headBlendSkinSecond = clampFeatureValue('headBlendSkinSecond', 0)
+  local headBlendShapeMix = clampFeatureValue('faceShape', 50) / 100.0
+  local headBlendSkinMix = clampFeatureValue('bodyShape', 50) / 100.0
+
+  SetPedHeadBlendData(
+    ped,
+    headBlendShapeFirst,
+    headBlendShapeSecond,
+    0,
+    headBlendSkinFirst,
+    headBlendSkinSecond,
+    0,
+    headBlendShapeMix,
+    headBlendSkinMix,
+    0.0,
+    false
+  )
+
   local beardMax = getBeardStyleMax()
   local beard = clampInt(skin.overlays.beard, -1, beardMax)
   local beardOpacityRaw = tonumber(skin.overlays.beardOpacity)
@@ -511,7 +561,6 @@ local function applySkinData(payload)
     SetPedHeadOverlayColor(ped, 2, 1, eyebrowColor, eyebrowColor)
   end
 
-  local featureSlots = RPSkinConfig.featureSlots or {}
   for key, slot in pairs(featureSlots) do
     local value = tonumber(skin.features[key])
     local minValue = tonumber(slot.min) or -100
@@ -627,10 +676,14 @@ local function captureCurrentSkinData(sexFallback)
   captured.overlays.hairColor = clampInt(captured.components.hairTexture or 0, 0, getHairColorMax())
   captured.overlays.hairHighlight = captured.overlays.hairColor
 
-  captured.features.faceShape = 0
+  captured.features.headBlendShapeFirst = 21
+  captured.features.headBlendShapeSecond = 0
+  captured.features.headBlendSkinFirst = 21
+  captured.features.headBlendSkinSecond = 0
+  captured.features.faceShape = 50
   captured.features.eyes = 0
   captured.features.eyeColor = eyeColor
-  captured.features.bodyShape = 0
+  captured.features.bodyShape = 50
   captured.features.eyebrows = eyebrowsValue
   captured.features.eyebrowsColor = hairColor
 
