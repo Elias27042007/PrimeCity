@@ -60,23 +60,19 @@ local function updateCreatorCamera()
   end
 
   local cfg = RPSkinConfig.camera or {}
-  local distance = tonumber(cfg.distance) or 3.2
-  local height = tonumber(cfg.height) or 0.95
-  local targetHeight = tonumber(cfg.targetHeight) or 0.58
+  local distance = tonumber(cfg.distance) or 9.0
+  local height = tonumber(cfg.height) or 1.05
+  local targetHeight = tonumber(cfg.targetHeight) or -0.2
   local fov = tonumber(cfg.fov) or 58.0
 
-  local coords = GetEntityCoords(ped)
-  local camPos = GetOffsetFromEntityInWorldCoords(ped, 0.0, distance, height)
-
-  SetCamCoord(creatorCam, camPos.x, camPos.y, camPos.z)
-  PointCamAtCoord(creatorCam, coords.x, coords.y, coords.z + targetHeight)
+  AttachCamToEntity(creatorCam, ped, 0.0, distance, height, true)
+  PointCamAtEntity(creatorCam, ped, 0.0, 0.0, targetHeight, true)
   SetCamFov(creatorCam, fov)
+  local coords = GetEntityCoords(ped)
   SetFocusPosAndVel(coords.x, coords.y, coords.z, 0.0, 0.0, 0.0)
 
-  if not IsCamActive(creatorCam) then
-    SetCamActive(creatorCam, true)
-    RenderScriptCams(true, true, 250, true, true)
-  end
+  SetCamActive(creatorCam, true)
+  RenderScriptCams(true, false, 0, true, true)
 end
 
 local function setCreatorAnchorFromPed()
@@ -134,7 +130,10 @@ local function ensureCreatorViewLockThread()
       InvalidateVehicleIdleCam()
       enforceCreatorAnchor()
       updateCreatorCamera()
-      SetFollowPedCamViewMode(0)
+      SetFollowPedCamViewMode(2)
+      SetFollowVehicleCamViewMode(2)
+      DisableControlAction(0, 80, true)   -- Next camera
+      DisableControlAction(0, 26, true)   -- Look behind
       DisableControlAction(0, 0, true)    -- Look left/right
       DisableControlAction(0, 1, true)    -- Look up/down
       DisableControlAction(0, 2, true)    -- Look up/down (alt)
@@ -491,7 +490,8 @@ local function openCreator(defaults)
   FreezeEntityPosition(ped, true)
   SetEntityInvincible(ped, true)
   SetEntityCollision(ped, true, true)
-  SetFollowPedCamViewMode(0)
+  SetFollowPedCamViewMode(2)
+  SetFollowVehicleCamViewMode(2)
   setCreatorAnchorFromPed()
   updateCreatorCamera()
   ensureCreatorViewLockThread()
@@ -558,7 +558,8 @@ RegisterNUICallback('previewSkin', function(data, cb)
     FreezeEntityPosition(ped, true)
     SetEntityInvincible(ped, true)
     SetEntityCollision(ped, true, true)
-    SetFollowPedCamViewMode(0)
+    SetFollowPedCamViewMode(2)
+    SetFollowVehicleCamViewMode(2)
     setCreatorAnchorFromPed()
     updateCreatorCamera()
   end
@@ -623,7 +624,8 @@ RegisterNetEvent('rp:skin:closeCreator', function()
   local ped = PlayerPedId()
   FreezeEntityPosition(ped, false)
   SetEntityInvincible(ped, false)
-  SetFollowPedCamViewMode(0)
+  SetFollowPedCamViewMode(2)
+  SetFollowVehicleCamViewMode(2)
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)
