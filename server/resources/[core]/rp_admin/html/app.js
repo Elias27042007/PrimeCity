@@ -656,6 +656,7 @@ function openGarageEditModal(garageId) {
   }
 
   closeGarageEditModal();
+  const extraSpawnPoints = Array.isArray(garage.spawn_points) ? garage.spawn_points : [];
 
   const modal = document.createElement('div');
   modal.id = 'garageEditModal';
@@ -682,11 +683,27 @@ function openGarageEditModal(garageId) {
           <input id="editGarageSpawnY" type="number" step="0.01" placeholder="Spawn Y" value="${escapeHtml(garage.spawn_y ?? '')}" />
           <input id="editGarageSpawnZ" type="number" step="0.01" placeholder="Spawn Z" value="${escapeHtml(garage.spawn_z ?? '')}" />
           <input id="editGarageSpawnH" type="number" step="0.01" placeholder="Spawn Heading" value="${escapeHtml(garage.spawn_heading ?? '')}" />
+          <label class="muted">Extra-Spawnpunkte (optional)</label>
+          <div class="list">
+            ${rowHeader(['X', 'Y', 'Z', 'Heading', 'Aktion'], 'row-shop-items')}
+            ${extraSpawnPoints.map((point) => `
+              <div class="row row-shop-items">
+                <div>${formatCoord(point.x)}</div>
+                <div>${formatCoord(point.y)}</div>
+                <div>${formatCoord(point.z)}</div>
+                <div>${formatCoord(point.h)}</div>
+                <div class="actions">
+                  <button class="btn danger" type="button" data-action="removeGarageSpawnPoint" data-spawnpointid="${escapeHtml(point.id)}">Entfernen</button>
+                </div>
+              </div>
+            `).join('') || renderEmptyRow('Noch keine Extra-Spawnpunkte.', 'row-shop-items')}
+          </div>
         </div>
 
         <div class="actions" style="margin-top:10px;">
           <button class="btn ghost" id="editGarageUseCurrentMarkerBtn" type="button">Marker von aktueller Position</button>
           <button class="btn ghost" id="editGarageUseCurrentSpawnBtn" type="button">Spawn von aktueller Position</button>
+          <button class="btn ghost" id="editGarageAddCurrentSpawnPointBtn" type="button">Extra-Spawnpunkt von aktueller Position hinzufügen</button>
           <button class="btn primary" id="editGarageSaveBtn" type="button">Speichern</button>
           <button class="btn danger" id="editGarageDeleteBtn" type="button">Löschen</button>
         </div>
@@ -738,6 +755,42 @@ function openGarageEditModal(garageId) {
       setFooter('Spawn-Koordinaten aus aktueller Position übernommen.');
     });
   }
+
+  const addSpawnPointBtn = modal.querySelector('#editGarageAddCurrentSpawnPointBtn');
+  if (addSpawnPointBtn) {
+    addSpawnPointBtn.addEventListener('click', async () => {
+      const result = await postNui('admin:getPlayerCoords', {});
+      if (!result || result.ok !== true || !result.coords) {
+        setFooter('Aktuelle Position konnte nicht gelesen werden.');
+        return;
+      }
+
+      await post('settings.garages.addSpawnPoint', {
+        garageId: Number(garage.id),
+        coords: {
+          x: Number(result.coords.x || 0),
+          y: Number(result.coords.y || 0),
+          z: Number(result.coords.z || 0),
+          h: Number(result.coords.h || 0)
+        }
+      });
+      setFooter(`Extra-Spawnpunkt zu Garage #${garage.id} wird hinzugefügt ...`);
+      closeGarageEditModal();
+    });
+  }
+
+  modal.querySelectorAll('[data-action="removeGarageSpawnPoint"]').forEach((el) => {
+    el.addEventListener('click', async () => {
+      const spawnPointId = Number(el.dataset.spawnpointid || 0);
+      if (!spawnPointId) return;
+      await post('settings.garages.removeSpawnPoint', {
+        garageId: Number(garage.id),
+        spawnPointId
+      });
+      setFooter(`Extra-Spawnpunkt #${spawnPointId} wird entfernt ...`);
+      closeGarageEditModal();
+    });
+  });
 
   const saveBtn = modal.querySelector('#editGarageSaveBtn');
   if (saveBtn) {

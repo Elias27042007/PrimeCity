@@ -1154,6 +1154,22 @@ local function ensureShopSettingsSchema()
   if not hasColumn('garages', 'blip_enabled') then
     MySQL.query.await('ALTER TABLE garages ADD COLUMN blip_enabled TINYINT(1) NOT NULL DEFAULT 1 AFTER enabled')
   end
+
+  MySQL.query.await([[
+    CREATE TABLE IF NOT EXISTS garage_spawn_points (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      garage_id BIGINT UNSIGNED NOT NULL,
+      pos_x DOUBLE NOT NULL,
+      pos_y DOUBLE NOT NULL,
+      pos_z DOUBLE NOT NULL,
+      heading DOUBLE NOT NULL DEFAULT 0,
+      sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_gsp_garage (garage_id, sort_order, id),
+      CONSTRAINT fk_gsp_garage FOREIGN KEY (garage_id) REFERENCES garages (id) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  ]])
 end
 
 local function bootstrapAdminData()
@@ -1827,6 +1843,32 @@ local function fetchShopSettingsData(source)
     FROM garages
     ORDER BY id ASC
   ]=]) or {}
+
+  local garageSpawnRows = MySQL.query.await([=[
+    SELECT id, garage_id, pos_x, pos_y, pos_z, heading
+    FROM garage_spawn_points
+    ORDER BY garage_id ASC, sort_order ASC, id ASC
+  ]=]) or {}
+  local spawnByGarage = {}
+  for i = 1, #garageSpawnRows do
+    local row = garageSpawnRows[i]
+    local garageId = tonumber(row.garage_id) or 0
+    if garageId > 0 then
+      spawnByGarage[garageId] = spawnByGarage[garageId] or {}
+      spawnByGarage[garageId][#spawnByGarage[garageId] + 1] = {
+        id = tonumber(row.id) or 0,
+        x = tonumber(row.pos_x) or 0.0,
+        y = tonumber(row.pos_y) or 0.0,
+        z = tonumber(row.pos_z) or 0.0,
+        h = tonumber(row.heading) or 0.0
+      }
+    end
+  end
+
+  for i = 1, #garages do
+    local garageId = tonumber(garages[i].id) or 0
+    garages[i].spawn_points = spawnByGarage[garageId] or {}
+  end
 
   local draft = SettingsDraft[source] or {}
   return {
@@ -3100,6 +3142,88 @@ local function removeGarageFromSettings(actorSource, data)
   notify(actorSource, 'success', ('Garage "%s" wurde gelöscht.'):format(tostring(row.label or garageId)))
 end
 
+local function addGarageSpawnPointFromSettings(actorSource, data)
+  if not ensurePermission(actorSource, 'settings.shops.manage') then
+    return
+  end
+
+  data = type(data) == 'table' and data or {}
+  local garageId = tonumber(data.garageId)
+  local coords = type(data.coords) == 'table' and data.coords or {}
+  local x = tonumber(coords.x)
+  local y = tonumber(coords.y)
+  local z = tonumber(coords.z)
+  local h = tonumber(coords.h) or 0.0
+
+  if not garageId or garageId <= 0 then
+    notify(actorSource, 'error', 'Ungültige Garage-ID.')
+    return
+  end
+  if not x or not y or not z then
+    notify(actorSource, 'error', 'Ungültige Spawn-Koordinaten.')
+    return
+  end
+
+  local exists = MySQL.scalar.await('SELECT id FROM garages WHERE id = ? LIMIT 1', { garageId })
+  if not exists then
+    notify(actorSource, 'error', 'Garage nicht gefunden.')
+    return
+  end
+
+  local nextSortOrder = tonumber(MySQL.scalar.await(
+    'SELECT COALESCE(MAX(sort_order), 0) + 1 FROM garage_spawn_points WHERE garage_id = ?',
+    { garageId }
+  )) or 1
+
+  MySQL.insert.await([[
+    INSERT INTO garage_spawn_points (garage_id, pos_x, pos_y, pos_z, heading, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?)
+  ]], {
+    garageId, x, y, z, h, nextSortOrder
+  })
+
+  local actorUserId = getUserIdFromSource(actorSource)
+  auditAction(actorUserId, 'settings.garage_spawn_add', nil, {
+    garageId = garageId, x = x, y = y, z = z, h = h
+  })
+
+  triggerGarageReload()
+  notify(actorSource, 'success', 'Extra-Spawnpunkt hinzugefügt.')
+end
+
+local function removeGarageSpawnPointFromSettings(actorSource, data)
+  if not ensurePermission(actorSource, 'settings.shops.manage') then
+    return
+  end
+
+  data = type(data) == 'table' and data or {}
+  local garageId = tonumber(data.garageId)
+  local spawnPointId = tonumber(data.spawnPointId)
+
+  if not garageId or garageId <= 0 or not spawnPointId or spawnPointId <= 0 then
+    notify(actorSource, 'error', 'Ungültige Spawnpunkt-Daten.')
+    return
+  end
+
+  local deleted = MySQL.update.await(
+    'DELETE FROM garage_spawn_points WHERE id = ? AND garage_id = ?',
+    { spawnPointId, garageId }
+  ) or 0
+
+  if deleted <= 0 then
+    notify(actorSource, 'error', 'Spawnpunkt nicht gefunden.')
+    return
+  end
+
+  local actorUserId = getUserIdFromSource(actorSource)
+  auditAction(actorUserId, 'settings.garage_spawn_remove', nil, {
+    garageId = garageId, spawnPointId = spawnPointId
+  })
+
+  triggerGarageReload()
+  notify(actorSource, 'success', 'Extra-Spawnpunkt entfernt.')
+end
+
 local function createBan(actorSource, targetSource, reason, durationHours, targetUserIdInput)
   if not ensurePermission(actorSource, 'players.ban') then
     return
@@ -4185,6 +4309,18 @@ local function handleNuiAction(source, payload)
 
   if action == 'settings.garages.remove' then
     removeGarageFromSettings(source, data)
+    pushPanel(source, false)
+    return
+  end
+
+  if action == 'settings.garages.addSpawnPoint' then
+    addGarageSpawnPointFromSettings(source, data)
+    pushPanel(source, false)
+    return
+  end
+
+  if action == 'settings.garages.removeSpawnPoint' then
+    removeGarageSpawnPointFromSettings(source, data)
     pushPanel(source, false)
     return
   end
