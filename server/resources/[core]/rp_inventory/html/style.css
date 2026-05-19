@@ -90,13 +90,14 @@ body { margin: 0; background: transparent; }
 }
 
 .icon {
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,.1);
-  background: rgba(0,0,0,.22);
-  flex: 0 0 48px;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  flex: 0 0 34px;
+  display: block;
 }
 
 .titleWrap {
