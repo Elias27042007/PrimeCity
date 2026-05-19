@@ -35,9 +35,7 @@ const defaultSkin = {
   overlays: {
     beard: -1,
     beardOpacity: 100,
-    beardColor: 0,
-    hairColor: 0,
-    hairHighlight: 0
+    beardColor: 0
   }
 };
 

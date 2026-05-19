@@ -280,8 +280,17 @@ end
 
 local function getBeardStyleMax()
   if GetNumHeadOverlayValues then
-    return math.max((GetNumHeadOverlayValues(1) or 1) - 1, 0)
+    local nativeMax = math.max((GetNumHeadOverlayValues(1) or 0) - 1, -1)
+    if nativeMax > 0 then
+      return nativeMax
+    end
   end
+
+  local configMax = tonumber((((RPSkinConfig or {}).overlaySlots or {}).beard or {}).max)
+  if configMax and configMax > 0 then
+    return math.floor(configMax)
+  end
+
   return 28
 end
 
@@ -296,9 +305,7 @@ local function buildRangeData(skin)
     overlays = {
       beard = { min = -1, max = getBeardStyleMax() },
       beardOpacity = { min = 0, max = 100 },
-      beardColor = { min = 0, max = getHairColorMax() },
-      hairColor = { min = 0, max = getHairColorMax() },
-      hairHighlight = { min = 0, max = getHairColorMax() }
+      beardColor = { min = 0, max = getHairColorMax() }
     }
   }
 
@@ -360,8 +367,8 @@ local function normalizeSkinData(payload)
   out.overlays.beard = tonumber((incoming.overlays or {}).beard) or defaults.overlays.beard
   out.overlays.beardOpacity = tonumber((incoming.overlays or {}).beardOpacity) or defaults.overlays.beardOpacity
   out.overlays.beardColor = tonumber((incoming.overlays or {}).beardColor) or defaults.overlays.beardColor
-  out.overlays.hairColor = tonumber((incoming.overlays or {}).hairColor) or defaults.overlays.hairColor
-  out.overlays.hairHighlight = tonumber((incoming.overlays or {}).hairHighlight) or defaults.overlays.hairHighlight
+  out.overlays.hairColor = tonumber((incoming.components or {}).hairTexture) or defaults.overlays.hairColor
+  out.overlays.hairHighlight = tonumber((incoming.components or {}).hairTexture) or defaults.overlays.hairHighlight
 
   out.sex = (incoming.sex == 'f') and 'f' or 'm'
 
@@ -413,11 +420,16 @@ local function applySkinData(payload)
 
   local beardMax = getBeardStyleMax()
   local beard = clampInt(skin.overlays.beard, -1, beardMax)
-  local beardOpacity = clampInt(skin.overlays.beardOpacity, 0, 100) / 100.0
+  local beardOpacityRaw = tonumber(skin.overlays.beardOpacity)
+  if beard >= 0 and (not beardOpacityRaw or beardOpacityRaw <= 0) then
+    beardOpacityRaw = 100
+  end
+  local beardOpacity = clampInt(beardOpacityRaw or 100, 0, 100) / 100.0
   local hairColorMax = getHairColorMax()
   local beardColor = clampInt(skin.overlays.beardColor, 0, hairColorMax)
-  local hairColor = clampInt(skin.overlays.hairColor, 0, hairColorMax)
-  local hairHighlight = clampInt(skin.overlays.hairHighlight, 0, hairColorMax)
+  local hairTone = clampInt(skin.components.hairTexture or 0, 0, hairColorMax)
+  local hairColor = hairTone
+  local hairHighlight = hairTone
 
   if beard < 0 then
     SetPedHeadOverlay(ped, 1, 255, 0.0)
@@ -429,7 +441,7 @@ local function applySkinData(payload)
   SetPedHairColor(ped, hairColor, hairHighlight)
 
   skin.overlays.beard = beard
-  skin.overlays.beardOpacity = clampInt(skin.overlays.beardOpacity, 0, 100)
+  skin.overlays.beardOpacity = clampInt(beardOpacityRaw or 100, 0, 100)
   skin.overlays.beardColor = beardColor
   skin.overlays.hairColor = hairColor
   skin.overlays.hairHighlight = hairHighlight
@@ -496,8 +508,8 @@ local function captureCurrentSkinData(sexFallback)
   captured.overlays.beard = beardValue
   captured.overlays.beardOpacity = 100
   captured.overlays.beardColor = hairColor
-  captured.overlays.hairColor = hairColor
-  captured.overlays.hairHighlight = hairHighlight
+  captured.overlays.hairColor = clampInt(captured.components.hairTexture or 0, 0, getHairColorMax())
+  captured.overlays.hairHighlight = captured.overlays.hairColor
 
   return captured
 end
