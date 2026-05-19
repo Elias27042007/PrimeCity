@@ -234,7 +234,7 @@ local function serializableInventory(cache)
       label = def and def.label or item.itemName,
       description = def and def.description or '',
       quantity = item.quantity,
-      usable = def and def.usable or false,
+      usable = (def and def.usable) or isWeaponItem(item.itemName),
       weight = def and def.weight or 0,
       icon = itemIconPath(item.itemName)
     }
@@ -426,7 +426,7 @@ end
 local function useItem(source, itemName, quantity)
   local def = ItemDefs[itemName]
   if not def then return false, 'Item nicht gefunden.' end
-  if not def.usable then return false, 'Item nicht nutzbar.' end
+  if not def.usable and not isWeaponItem(itemName) then return false, 'Item nicht nutzbar.' end
 
   quantity = math.floor(tonumber(quantity) or 1)
   if quantity <= 0 then
