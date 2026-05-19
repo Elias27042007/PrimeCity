@@ -42,7 +42,37 @@ RegisterNetEvent('rp:vehicles:spawnOwnedVehicle', function(data)
 
   local coords = data.spawn
   local vehicle = CreateVehicle(modelHash, coords.x, coords.y, coords.z, coords.h, true, false)
-  SetVehicleNumberPlateText(vehicle, data.plate or 'RPVEH')
+  SetEntityAsMissionEntity(vehicle, true, true)
+  SetVehicleOnGroundProperly(vehicle)
+  SetVehicleModKit(vehicle, 0)
+
+  local requestedPlate = tostring(data.plate or 'RPVEH'):upper():gsub('%s+', ' ')
+  requestedPlate = requestedPlate:sub(1, 8)
+  if requestedPlate == '' then
+    requestedPlate = 'RPVEH'
+  end
+
+  local function trimPlate(text)
+    return tostring(text or ''):gsub('^%s*(.-)%s*$', '%1')
+  end
+
+  SetVehicleNumberPlateTextIndex(vehicle, 0)
+  SetVehicleNumberPlateText(vehicle, requestedPlate)
+
+  -- Some addon/import vehicles reset plate text right after creation/warp.
+  -- Re-apply a few ticks so the assigned plate is actually visible.
+  CreateThread(function()
+    local tries = 0
+    while DoesEntityExist(vehicle) and tries < 25 do
+      tries = tries + 1
+      local currentPlate = trimPlate(GetVehicleNumberPlateText(vehicle))
+      if currentPlate ~= requestedPlate then
+        SetVehicleNumberPlateTextIndex(vehicle, 0)
+        SetVehicleNumberPlateText(vehicle, requestedPlate)
+      end
+      Wait(120)
+    end
+  end)
 
   if data.props then
     SetVehicleEngineHealth(vehicle, tonumber(data.props.engineHealth) or 1000.0)
