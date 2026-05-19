@@ -65,6 +65,7 @@ function getShopTypeLabel(type) {
   if (type === '24_7') return '24/7 Shop';
   if (type === 'vehicle') return 'Autohaus';
   if (type === 'clothing') return 'Kleidungsshop';
+  if (type === 'garage') return 'Garagen';
   return String(type || '-');
 }
 
@@ -608,6 +609,120 @@ function openShopEditModal(shopId) {
     vehiclesBtn.addEventListener('click', () => {
       closeShopEditModal();
       openShopVehiclesModal(Number(shop.id));
+    });
+  }
+}
+
+function closeGarageEditModal() {
+  const modal = document.getElementById('garageEditModal');
+  if (modal) {
+    modal.remove();
+  }
+}
+
+function openGarageEditModal(garageId) {
+  const settings = state.data?.settings || {};
+  const garages = settings.garages || [];
+  const garage = garages.find((entry) => Number(entry.id) === Number(garageId));
+  if (!garage) {
+    setFooter('Garage wurde nicht gefunden.');
+    return;
+  }
+
+  closeGarageEditModal();
+
+  const modal = document.createElement('div');
+  modal.id = 'garageEditModal';
+  modal.className = 'modal-backdrop';
+  modal.innerHTML = `
+    <div class="modal-card modal-small">
+      <div class="modal-head">
+        <h3>Garage bearbeiten (#${escapeHtml(garage.id)})</h3>
+        <button type="button" class="btn ghost" data-action="closeGarageEditModal">Schließen</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid full">
+          <input id="editGarageLabel" type="text" placeholder="Name" value="${escapeHtml(garage.label || '')}" />
+          <div class="actions">
+            <label class="inline-check"><input id="editGarageBlipEnabled" type="checkbox" ${Number(garage.blip_enabled) === 1 ? 'checked' : ''} /> Blip anzeigen</label>
+            <label class="inline-check"><input id="editGarageEnabled" type="checkbox" ${Number(garage.enabled) === 1 ? 'checked' : ''} /> Aktiv</label>
+          </div>
+          <label class="muted">Marker (Einparken/Ausparken)</label>
+          <input id="editGarageX" type="number" step="0.01" placeholder="Marker X" value="${escapeHtml(garage.pos_x ?? '')}" />
+          <input id="editGarageY" type="number" step="0.01" placeholder="Marker Y" value="${escapeHtml(garage.pos_y ?? '')}" />
+          <input id="editGarageZ" type="number" step="0.01" placeholder="Marker Z" value="${escapeHtml(garage.pos_z ?? '')}" />
+          <label class="muted">Spawn</label>
+          <input id="editGarageSpawnX" type="number" step="0.01" placeholder="Spawn X" value="${escapeHtml(garage.spawn_x ?? '')}" />
+          <input id="editGarageSpawnY" type="number" step="0.01" placeholder="Spawn Y" value="${escapeHtml(garage.spawn_y ?? '')}" />
+          <input id="editGarageSpawnZ" type="number" step="0.01" placeholder="Spawn Z" value="${escapeHtml(garage.spawn_z ?? '')}" />
+          <input id="editGarageSpawnH" type="number" step="0.01" placeholder="Spawn Heading" value="${escapeHtml(garage.spawn_heading ?? '')}" />
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button class="btn ghost" id="editGarageUseCurrentMarkerBtn" type="button">Marker von aktueller Position</button>
+          <button class="btn ghost" id="editGarageUseCurrentSpawnBtn" type="button">Spawn von aktueller Position</button>
+          <button class="btn primary" id="editGarageSaveBtn" type="button">Speichern</button>
+          <button class="btn danger" id="editGarageDeleteBtn" type="button">Löschen</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.querySelectorAll('[data-action="closeGarageEditModal"]').forEach((el) => {
+    el.addEventListener('click', () => closeGarageEditModal());
+  });
+
+  const useMarkerBtn = modal.querySelector('#editGarageUseCurrentMarkerBtn');
+  if (useMarkerBtn) {
+    useMarkerBtn.addEventListener('click', async () => {
+      await post('settings.garages.useCurrentMarkerCoords', {});
+      setFooter('Aktuelle Position wird als Marker übernommen ...');
+      closeGarageEditModal();
+    });
+  }
+
+  const useSpawnBtn = modal.querySelector('#editGarageUseCurrentSpawnBtn');
+  if (useSpawnBtn) {
+    useSpawnBtn.addEventListener('click', async () => {
+      await post('settings.garages.useCurrentSpawnCoords', {});
+      setFooter('Aktuelle Position wird als Spawn übernommen ...');
+      closeGarageEditModal();
+    });
+  }
+
+  const saveBtn = modal.querySelector('#editGarageSaveBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      const payload = {
+        garageId: Number(garage.id),
+        label: modal.querySelector('#editGarageLabel')?.value || garage.label || '',
+        blipEnabled: (modal.querySelector('#editGarageBlipEnabled')?.checked ?? (Number(garage.blip_enabled) === 1)) === true,
+        enabled: (modal.querySelector('#editGarageEnabled')?.checked ?? (Number(garage.enabled) === 1)) === true,
+        markerCoords: {
+          x: parseNullableNumber(modal.querySelector('#editGarageX')?.value),
+          y: parseNullableNumber(modal.querySelector('#editGarageY')?.value),
+          z: parseNullableNumber(modal.querySelector('#editGarageZ')?.value)
+        },
+        spawnCoords: {
+          x: parseNullableNumber(modal.querySelector('#editGarageSpawnX')?.value),
+          y: parseNullableNumber(modal.querySelector('#editGarageSpawnY')?.value),
+          z: parseNullableNumber(modal.querySelector('#editGarageSpawnZ')?.value),
+          h: parseNullableNumber(modal.querySelector('#editGarageSpawnH')?.value)
+        }
+      };
+      await post('settings.garages.update', payload);
+      setFooter(`Garage #${garage.id} wird gespeichert ...`);
+      closeGarageEditModal();
+    });
+  }
+
+  const deleteBtn = modal.querySelector('#editGarageDeleteBtn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async () => {
+      await post('settings.garages.remove', { garageId: Number(garage.id) });
+      setFooter(`Garage #${garage.id} wird gelöscht ...`);
+      closeGarageEditModal();
     });
   }
 }

@@ -1150,6 +1150,10 @@ local function ensureShopSettingsSchema()
       CONSTRAINT fk_shop_vehicles_vehicle FOREIGN KEY (vehicle_id) REFERENCES vehicles (id) ON DELETE RESTRICT ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   ]])
+
+  if not hasColumn('garages', 'blip_enabled') then
+    MySQL.query.await('ALTER TABLE garages ADD COLUMN blip_enabled TINYINT(1) NOT NULL DEFAULT 1 AFTER enabled')
+  end
 end
 
 local function bootstrapAdminData()
@@ -1816,6 +1820,14 @@ local function fetchShopSettingsData(source)
     ORDER BY sv.shop_id ASC, v.label ASC
   ]=]) or {}
 
+  local garages = MySQL.query.await([=[
+    SELECT id, garage_code, label, pos_x, pos_y, pos_z,
+           spawn_x, spawn_y, spawn_z, spawn_heading,
+           enabled, COALESCE(blip_enabled, 1) AS blip_enabled
+    FROM garages
+    ORDER BY id ASC
+  ]=]) or {}
+
   local draft = SettingsDraft[source] or {}
   return {
     shops = shops,
@@ -1823,7 +1835,10 @@ local function fetchShopSettingsData(source)
     shopItems = shopItems,
     vehicleCatalog = vehicleCatalog,
     shopVehicles = shopVehicles,
-    draftCoords = draft.coords or nil
+    garages = garages,
+    draftCoords = draft.coords or nil,
+    garageDraftMarkerCoords = draft.garageMarkerCoords or nil,
+    garageDraftSpawnCoords = draft.garageSpawnCoords or nil
   }
 end
 
@@ -1850,7 +1865,10 @@ local function buildPanelPayload(source)
     shopItems = {},
     vehicleCatalog = {},
     shopVehicles = {},
-    draftCoords = nil
+    garages = {},
+    draftCoords = nil,
+    garageDraftMarkerCoords = nil,
+    garageDraftSpawnCoords = nil
   }
 
   if ctx.roleData.permissions['scripts.view'] == true then
@@ -2549,9 +2567,46 @@ local function setShopDraftCoordsFromPlayer(actorSource)
   notify(actorSource, 'success', 'Aktuelle Position wurde als Shop-Koordinate übernommen.')
 end
 
+local function setGarageDraftCoordsFromPlayer(actorSource, mode)
+  if not ensurePermission(actorSource, 'settings.shops.manage') then
+    return
+  end
+
+  local ped = GetPlayerPed(actorSource)
+  if not ped or ped == 0 then
+    notify(actorSource, 'error', 'Spielerposition konnte nicht gelesen werden.')
+    return
+  end
+
+  local pos = GetEntityCoords(ped)
+  local heading = GetEntityHeading(ped)
+  SettingsDraft[actorSource] = SettingsDraft[actorSource] or {}
+
+  local target = {
+    x = tonumber(pos.x) or 0.0,
+    y = tonumber(pos.y) or 0.0,
+    z = tonumber(pos.z) or 0.0,
+    h = tonumber(heading) or 0.0
+  }
+
+  if mode == 'spawn' then
+    SettingsDraft[actorSource].garageSpawnCoords = target
+    notify(actorSource, 'success', 'Aktuelle Position wurde als Garage-Spawn übernommen.')
+  else
+    SettingsDraft[actorSource].garageMarkerCoords = target
+    notify(actorSource, 'success', 'Aktuelle Position wurde als Garage-Marker übernommen.')
+  end
+end
+
 local function triggerShopReload()
   if GetResourceState('rp_shops') == 'started' then
     TriggerEvent('rp:shops:adminReload')
+  end
+end
+
+local function triggerGarageReload()
+  if GetResourceState('rp_garage') == 'started' then
+    TriggerEvent('rp:garage:adminReload')
   end
 end
 
@@ -2873,6 +2928,176 @@ local function removeShopVehicleFromSettings(actorSource, data)
   local actorUserId = getUserIdFromSource(actorSource)
   auditAction(actorUserId, 'settings.shop_vehicle_remove', nil, { shopId = shopId, vehicleId = vehicleId })
   notify(actorSource, 'success', 'Autohaus-Fahrzeug entfernt.')
+end
+
+local function createGarageFromSettings(actorSource, data)
+  if not ensurePermission(actorSource, 'settings.shops.manage') then
+    return
+  end
+
+  data = type(data) == 'table' and data or {}
+  local label = trim(tostring(data.label or ''))
+  local garageCode = trim(tostring(data.garageCode or '')):lower()
+  local enabled = data.enabled ~= false
+  local blipEnabled = data.blipEnabled ~= false
+  if label == '' then
+    notify(actorSource, 'error', 'Garagenname fehlt.')
+    return
+  end
+  if #label > 64 then
+    label = label:sub(1, 64)
+  end
+
+  if garageCode == '' then
+    garageCode = label:lower():gsub('[^%w]+', '_'):gsub('^_+', ''):gsub('_+$', '')
+  end
+  if garageCode == '' then
+    garageCode = ('garage_%s'):format(os.time())
+  end
+  if #garageCode > 32 then
+    garageCode = garageCode:sub(1, 32)
+  end
+
+  local markerCoords = type(data.markerCoords) == 'table' and data.markerCoords or nil
+  local spawnCoords = type(data.spawnCoords) == 'table' and data.spawnCoords or nil
+  local draft = SettingsDraft[actorSource] or {}
+
+  local markerX = tonumber(markerCoords and markerCoords.x) or tonumber((draft.garageMarkerCoords or {}).x)
+  local markerY = tonumber(markerCoords and markerCoords.y) or tonumber((draft.garageMarkerCoords or {}).y)
+  local markerZ = tonumber(markerCoords and markerCoords.z) or tonumber((draft.garageMarkerCoords or {}).z)
+  local spawnX = tonumber(spawnCoords and spawnCoords.x) or tonumber((draft.garageSpawnCoords or {}).x)
+  local spawnY = tonumber(spawnCoords and spawnCoords.y) or tonumber((draft.garageSpawnCoords or {}).y)
+  local spawnZ = tonumber(spawnCoords and spawnCoords.z) or tonumber((draft.garageSpawnCoords or {}).z)
+  local spawnH = tonumber(spawnCoords and spawnCoords.h) or tonumber((draft.garageSpawnCoords or {}).h) or 0.0
+
+  if not markerX or not markerY or not markerZ then
+    notify(actorSource, 'error', 'Marker-Koordinaten fehlen.')
+    return
+  end
+  if not spawnX or not spawnY or not spawnZ then
+    notify(actorSource, 'error', 'Spawn-Koordinaten fehlen.')
+    return
+  end
+
+  local codeExists = MySQL.scalar.await('SELECT id FROM garages WHERE garage_code = ? LIMIT 1', { garageCode })
+  if codeExists then
+    notify(actorSource, 'error', 'Garage-Code existiert bereits.')
+    return
+  end
+
+  local newGarageId = MySQL.insert.await([[
+    INSERT INTO garages (
+      garage_code, label, pos_x, pos_y, pos_z,
+      spawn_x, spawn_y, spawn_z, spawn_heading, enabled, blip_enabled
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ]], {
+    garageCode, label, markerX, markerY, markerZ,
+    spawnX, spawnY, spawnZ, spawnH, enabled and 1 or 0, blipEnabled and 1 or 0
+  })
+
+  local actorUserId = getUserIdFromSource(actorSource)
+  auditAction(actorUserId, 'settings.garage_create', nil, {
+    garageId = newGarageId,
+    garageCode = garageCode
+  })
+
+  triggerGarageReload()
+  notify(actorSource, 'success', ('Garage "%s" wurde erstellt.'):format(label))
+end
+
+local function updateGarageFromSettings(actorSource, data)
+  if not ensurePermission(actorSource, 'settings.shops.manage') then
+    return
+  end
+
+  data = type(data) == 'table' and data or {}
+  local garageId = tonumber(data.garageId)
+  if not garageId or garageId <= 0 then
+    notify(actorSource, 'error', 'Ungültige Garage-ID.')
+    return
+  end
+
+  local row = MySQL.single.await('SELECT id, label FROM garages WHERE id = ? LIMIT 1', { garageId })
+  if not row then
+    notify(actorSource, 'error', 'Garage nicht gefunden.')
+    return
+  end
+
+  local label = trim(tostring(data.label or row.label or 'Garage'))
+  local enabled = data.enabled ~= false
+  local blipEnabled = data.blipEnabled ~= false
+  local markerCoords = type(data.markerCoords) == 'table' and data.markerCoords or nil
+  local spawnCoords = type(data.spawnCoords) == 'table' and data.spawnCoords or nil
+  local draft = SettingsDraft[actorSource] or {}
+
+  local markerX = tonumber(markerCoords and markerCoords.x) or tonumber((draft.garageMarkerCoords or {}).x)
+  local markerY = tonumber(markerCoords and markerCoords.y) or tonumber((draft.garageMarkerCoords or {}).y)
+  local markerZ = tonumber(markerCoords and markerCoords.z) or tonumber((draft.garageMarkerCoords or {}).z)
+  local spawnX = tonumber(spawnCoords and spawnCoords.x) or tonumber((draft.garageSpawnCoords or {}).x)
+  local spawnY = tonumber(spawnCoords and spawnCoords.y) or tonumber((draft.garageSpawnCoords or {}).y)
+  local spawnZ = tonumber(spawnCoords and spawnCoords.z) or tonumber((draft.garageSpawnCoords or {}).z)
+  local spawnH = tonumber(spawnCoords and spawnCoords.h) or tonumber((draft.garageSpawnCoords or {}).h) or 0.0
+
+  if not markerX or not markerY or not markerZ then
+    notify(actorSource, 'error', 'Marker-Koordinaten fehlen.')
+    return
+  end
+  if not spawnX or not spawnY or not spawnZ then
+    notify(actorSource, 'error', 'Spawn-Koordinaten fehlen.')
+    return
+  end
+
+  if label == '' then
+    label = tostring(row.label or 'Garage')
+  end
+  if #label > 64 then
+    label = label:sub(1, 64)
+  end
+
+  MySQL.query.await([[
+    UPDATE garages
+    SET label = ?, pos_x = ?, pos_y = ?, pos_z = ?,
+        spawn_x = ?, spawn_y = ?, spawn_z = ?, spawn_heading = ?,
+        enabled = ?, blip_enabled = ?
+    WHERE id = ?
+  ]], {
+    label, markerX, markerY, markerZ,
+    spawnX, spawnY, spawnZ, spawnH,
+    enabled and 1 or 0, blipEnabled and 1 or 0,
+    garageId
+  })
+
+  local actorUserId = getUserIdFromSource(actorSource)
+  auditAction(actorUserId, 'settings.garage_update', nil, { garageId = garageId })
+  triggerGarageReload()
+  notify(actorSource, 'success', ('Garage #%s wurde aktualisiert.'):format(garageId))
+end
+
+local function removeGarageFromSettings(actorSource, data)
+  if not ensurePermission(actorSource, 'settings.shops.manage') then
+    return
+  end
+
+  data = type(data) == 'table' and data or {}
+  local garageId = tonumber(data.garageId)
+  if not garageId or garageId <= 0 then
+    notify(actorSource, 'error', 'Ungültige Garage-ID.')
+    return
+  end
+
+  local row = MySQL.single.await('SELECT id, label FROM garages WHERE id = ? LIMIT 1', { garageId })
+  if not row then
+    notify(actorSource, 'error', 'Garage nicht gefunden.')
+    return
+  end
+
+  MySQL.update.await('DELETE FROM garages WHERE id = ?', { garageId })
+
+  local actorUserId = getUserIdFromSource(actorSource)
+  auditAction(actorUserId, 'settings.garage_remove', nil, { garageId = garageId })
+  triggerGarageReload()
+  notify(actorSource, 'success', ('Garage "%s" wurde gelöscht.'):format(tostring(row.label or garageId)))
 end
 
 local function createBan(actorSource, targetSource, reason, durationHours, targetUserIdInput)
@@ -3930,6 +4155,36 @@ local function handleNuiAction(source, payload)
 
   if action == 'settings.shops.removeVehicle' then
     removeShopVehicleFromSettings(source, data)
+    pushPanel(source, false)
+    return
+  end
+
+  if action == 'settings.garages.useCurrentMarkerCoords' then
+    setGarageDraftCoordsFromPlayer(source, 'marker')
+    pushPanel(source, false)
+    return
+  end
+
+  if action == 'settings.garages.useCurrentSpawnCoords' then
+    setGarageDraftCoordsFromPlayer(source, 'spawn')
+    pushPanel(source, false)
+    return
+  end
+
+  if action == 'settings.garages.create' then
+    createGarageFromSettings(source, data)
+    pushPanel(source, false)
+    return
+  end
+
+  if action == 'settings.garages.update' then
+    updateGarageFromSettings(source, data)
+    pushPanel(source, false)
+    return
+  end
+
+  if action == 'settings.garages.remove' then
+    removeGarageFromSettings(source, data)
     pushPanel(source, false)
     return
   end

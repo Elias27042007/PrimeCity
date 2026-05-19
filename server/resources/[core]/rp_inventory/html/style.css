@@ -137,12 +137,20 @@ button {
   font-weight: 700;
   background: linear-gradient(90deg, #39d0ff, #7ba1ff);
   color: #121725;
+}
+
+.actions button {
   min-width: 0;
   width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 12px;
+}
+
+#closeBtn,
+#refreshNearbyBtn {
+  width: auto;
 }
 
 button.danger {

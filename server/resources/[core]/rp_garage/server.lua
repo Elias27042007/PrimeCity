@@ -1,6 +1,26 @@
 local GarageCache = {}
 local OpenSession = {}
 
+local function hasColumn(tableName, columnName)
+  local exists = MySQL.scalar.await(
+    [=[SELECT 1
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = ?
+         AND COLUMN_NAME = ?
+       LIMIT 1]=],
+    { tableName, columnName }
+  )
+
+  return exists ~= nil
+end
+
+local function ensureGaragesSchema()
+  if not hasColumn('garages', 'blip_enabled') then
+    MySQL.query.await('ALTER TABLE garages ADD COLUMN blip_enabled TINYINT(1) NOT NULL DEFAULT 1 AFTER enabled')
+  end
+end
+
 local function notify(source, ntype, title, message)
   TriggerClientEvent('rp:notify', source, {
     type = ntype,
@@ -36,7 +56,7 @@ end
 local function loadGarages()
   GarageCache = {}
   local rows = MySQL.query.await(
-    'SELECT id, label, pos_x, pos_y, pos_z, spawn_x, spawn_y, spawn_z, spawn_heading FROM garages WHERE enabled = 1 ORDER BY id ASC'
+    'SELECT id, label, pos_x, pos_y, pos_z, spawn_x, spawn_y, spawn_z, spawn_heading, COALESCE(blip_enabled, 1) AS blip_enabled FROM garages WHERE enabled = 1 ORDER BY id ASC'
   )
 
   for i = 1, #rows do
@@ -50,7 +70,8 @@ local function loadGarages()
       sx = tonumber(r.spawn_x),
       sy = tonumber(r.spawn_y),
       sz = tonumber(r.spawn_z),
-      sh = tonumber(r.spawn_heading)
+      sh = tonumber(r.spawn_heading),
+      blipEnabled = (tonumber(r.blip_enabled) or 1) == 1
     }
   end
 end
@@ -349,7 +370,19 @@ AddEventHandler('onResourceStart', function(resourceName)
   if resourceName ~= GetCurrentResourceName() then
     return
   end
+  ensureGaragesSchema()
   loadGarages()
+end)
+
+RegisterNetEvent('rp:garage:adminReload', function()
+  loadGarages()
+  local players = GetPlayers()
+  for i = 1, #players do
+    local src = tonumber(players[i])
+    if src then
+      TriggerClientEvent('rp:garage:receivePoints', src, getGaragesForClient())
+    end
+  end
 end)
 
 AddEventHandler('playerDropped', function()

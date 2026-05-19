@@ -1,18 +1,29 @@
-local pointsReady = false
 local garageBlips = {}
+local registeredPointIds = {}
 
-CreateThread(function()
-  Wait(2800)
-  TriggerServerEvent('rp:garage:requestPoints')
-end)
+local function clearGarageVisuals()
+  for i = 1, #registeredPointIds do
+    exports.rp_interactions:RemovePoint(registeredPointIds[i])
+  end
+  registeredPointIds = {}
 
-RegisterNetEvent('rp:garage:receivePoints', function(garages)
-  if pointsReady then return end
+  for i = 1, #garageBlips do
+    local blip = garageBlips[i]
+    if blip and DoesBlipExist(blip) then
+      RemoveBlip(blip)
+    end
+  end
+  garageBlips = {}
+end
+
+local function rebuildGarageVisuals(garages)
+  clearGarageVisuals()
 
   for i = 1, #garages do
     local g = garages[i]
+    local pointId = ('rp_garage_%s'):format(g.id)
     exports.rp_interactions:RegisterPoint({
-      id = ('rp_garage_%s'):format(g.id),
+      id = pointId,
       label = ('[E] %s'):format(g.label),
       coords = vector3(g.x + 0.0, g.y + 0.0, g.z + 0.0),
       distance = RPGarageConfig.drawDistance,
@@ -21,8 +32,10 @@ RegisterNetEvent('rp:garage:receivePoints', function(garages)
       triggerType = 'client',
       args = { garageId = g.id }
     })
+    registeredPointIds[#registeredPointIds + 1] = pointId
 
-    if RPGarageConfig.blip and RPGarageConfig.blip.enabled then
+    local useBlip = (RPGarageConfig.blip and RPGarageConfig.blip.enabled) and (g.blipEnabled ~= false)
+    if useBlip then
       local blip = AddBlipForCoord(g.x + 0.0, g.y + 0.0, g.z + 0.0)
       SetBlipSprite(blip, RPGarageConfig.blip.sprite)
       SetBlipDisplay(blip, 4)
@@ -35,8 +48,15 @@ RegisterNetEvent('rp:garage:receivePoints', function(garages)
       garageBlips[#garageBlips + 1] = blip
     end
   end
+end
 
-  pointsReady = true
+CreateThread(function()
+  Wait(2800)
+  TriggerServerEvent('rp:garage:requestPoints')
+end)
+
+RegisterNetEvent('rp:garage:receivePoints', function(garages)
+  rebuildGarageVisuals(garages or {})
 end)
 
 RegisterNetEvent('rp:garage:open', function(args)
@@ -185,4 +205,11 @@ RegisterNUICallback('garage:storeVehicle', function(data, cb)
   })
 
   cb({ ok = true })
+end)
+
+AddEventHandler('onClientResourceStop', function(resourceName)
+  if resourceName ~= GetCurrentResourceName() then
+    return
+  end
+  clearGarageVisuals()
 end)
