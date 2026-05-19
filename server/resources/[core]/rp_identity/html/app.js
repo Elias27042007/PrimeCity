@@ -66,6 +66,16 @@ const toInputDate = (value) => {
     }
   }
 
+  const parsedDate = new Date(text);
+  if (!Number.isNaN(parsedDate.getTime())) {
+    const year = parsedDate.getFullYear();
+    const month = parsedDate.getMonth() + 1;
+    const day = parsedDate.getDate();
+    if (year >= 1900 && year <= 2999) {
+      return `${year}-${pad2(month)}-${pad2(day)}`;
+    }
+  }
+
   return '';
 };
 

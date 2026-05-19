@@ -21,6 +21,63 @@ local function canSubmit(source)
   return true
 end
 
+local function trimString(value)
+  return tostring(value or ''):match('^%s*(.-)%s*$')
+end
+
+local function normalizeDateForInput(value)
+  if value == nil then
+    return ''
+  end
+
+  if type(value) == 'table' then
+    local year = tonumber(value.year or value.y or value[1])
+    local month = tonumber(value.month or value.m or value[2])
+    local day = tonumber(value.day or value.d or value[3])
+    if year and month and day then
+      return ('%04d-%02d-%02d'):format(year, month, day)
+    end
+  end
+
+  if type(value) == 'number' then
+    local parsed = os.date('*t', value)
+    if parsed and parsed.year and parsed.month and parsed.day then
+      return ('%04d-%02d-%02d'):format(parsed.year, parsed.month, parsed.day)
+    end
+  end
+
+  local text = trimString(value)
+  if text == '' then
+    return ''
+  end
+
+  local isoDate = text:match('^(%d%d%d%d%-%d%d%-%d%d)')
+  if isoDate then
+    return isoDate
+  end
+
+  local dotDay, dotMonth, dotYear = text:match('^(%d%d?)%.(%d%d?)%.(%d%d%d%d)$')
+  if dotDay and dotMonth and dotYear then
+    return ('%04d-%02d-%02d'):format(tonumber(dotYear), tonumber(dotMonth), tonumber(dotDay))
+  end
+
+  local slashA, slashB, slashYear = text:match('^(%d%d?)/(%d%d?)/(%d%d%d%d)$')
+  if slashA and slashB and slashYear then
+    local a = tonumber(slashA)
+    local b = tonumber(slashB)
+    local year = tonumber(slashYear)
+    local month = a
+    local day = b
+    if a > 12 and b <= 12 then
+      month = b
+      day = a
+    end
+    return ('%04d-%02d-%02d'):format(year, month, day)
+  end
+
+  return ''
+end
+
 local function getCurrentIdentity(source)
   local characterId = exports.rp_core:GetCharacterId(source)
   if not characterId then
@@ -48,7 +105,7 @@ local function getCurrentIdentity(source)
   return {
     firstName = tostring(row.first_name or ''),
     lastName = tostring(row.last_name or ''),
-    dateOfBirth = tostring(row.date_of_birth or ''),
+    dateOfBirth = normalizeDateForInput(row.date_of_birth),
     sex = tostring(row.sex or 'm'),
     height = tonumber(row.height_cm or 175) or 175,
     nationality = tostring(row.nationality or '')
