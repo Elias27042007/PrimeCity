@@ -121,7 +121,8 @@ const openItemModal = (item) => {
 
   itemActionButtons.innerHTML = '';
 
-  if (item.usable) {
+  const isWeaponItem = String(item.itemName || '').toLowerCase().startsWith('weapon_');
+  if (item.usable && !isWeaponItem) {
     const useBtn = document.createElement('button');
     useBtn.type = 'button';
     useBtn.textContent = 'Benutzen';

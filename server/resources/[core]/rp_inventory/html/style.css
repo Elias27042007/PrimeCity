@@ -188,6 +188,12 @@ button.danger {
   font-size: 15px;
 }
 
+.modalHead button,
+.modalBody button,
+.giveSection button {
+  color: #e8eeff;
+}
+
 .modalBody {
   padding: 14px;
   display: grid;
