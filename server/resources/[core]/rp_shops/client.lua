@@ -7,12 +7,26 @@ local function getShopBlipGroupLabel(shop)
     return '24/7 Shop'
   end
   if shopType == 'clothing' then
-    return 'Kleidung'
+    return 'Kleidungsladen'
   end
   if shopType == 'vehicle' then
     return 'Autohaus'
   end
   return 'Shop'
+end
+
+local function getShopBlipStyle(shop)
+  local base = RPShopsConfig.blip or {}
+  local shopType = tostring(shop and shop.type or ''):lower()
+  local byType = type(base.byType) == 'table' and base.byType or {}
+  local style = type(byType[shopType]) == 'table' and byType[shopType] or {}
+
+  return {
+    sprite = tonumber(style.sprite) or tonumber(base.sprite) or 52,
+    color = tonumber(style.color) or tonumber(base.color) or 2,
+    scale = tonumber(style.scale) or tonumber(base.scale) or 0.75,
+    shortRange = style.shortRange == nil and (base.shortRange == true) or (style.shortRange == true)
+  }
 end
 
 local function registerShopPoints(shops)
@@ -44,12 +58,13 @@ local function createShopBlips(shops)
       goto continue
     end
 
+    local style = getShopBlipStyle(shop)
     local blip = AddBlipForCoord(shop.x + 0.0, shop.y + 0.0, shop.z + 0.0)
-    SetBlipSprite(blip, RPShopsConfig.blip.sprite)
+    SetBlipSprite(blip, style.sprite)
     SetBlipDisplay(blip, 4)
-    SetBlipScale(blip, RPShopsConfig.blip.scale)
-    SetBlipColour(blip, RPShopsConfig.blip.color)
-    SetBlipAsShortRange(blip, RPShopsConfig.blip.shortRange == true)
+    SetBlipScale(blip, style.scale)
+    SetBlipColour(blip, style.color)
+    SetBlipAsShortRange(blip, style.shortRange)
     BeginTextCommandSetBlipName('STRING')
     AddTextComponentString(getShopBlipGroupLabel(shop))
     EndTextCommandSetBlipName(blip)

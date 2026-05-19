@@ -6,6 +6,13 @@ RPShopsConfig = {
     sprite = 52,
     color = 2,
     scale = 0.75,
-    shortRange = true
+    shortRange = true,
+    byType = {
+      clothing = {
+        sprite = 73,
+        color = 47,
+        scale = 0.8
+      }
+    }
   }
 }
