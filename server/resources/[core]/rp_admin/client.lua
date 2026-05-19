@@ -218,6 +218,26 @@ RegisterNUICallback('admin:action', function(data, cb)
   cb({ ok = true })
 end)
 
+RegisterNUICallback('admin:getPlayerCoords', function(_, cb)
+  local ped = PlayerPedId()
+  if ped == 0 or not DoesEntityExist(ped) then
+    cb({ ok = false, message = 'Ped nicht gefunden.' })
+    return
+  end
+
+  local pos = GetEntityCoords(ped)
+  local heading = GetEntityHeading(ped)
+  cb({
+    ok = true,
+    coords = {
+      x = tonumber(pos.x) or 0.0,
+      y = tonumber(pos.y) or 0.0,
+      z = tonumber(pos.z) or 0.0,
+      h = tonumber(heading) or 0.0
+    }
+  })
+end)
+
 RegisterNetEvent('rp:admin:forceClose', function()
   setUI(false)
 end)

@@ -17,6 +17,19 @@ const state = {
   scriptSearch: '',
   shopSearch: '',
   settingsShopType: '',
+  garageCreateDraft: {
+    label: '',
+    garageCode: '',
+    blipEnabled: true,
+    enabled: true,
+    markerX: '',
+    markerY: '',
+    markerZ: '',
+    spawnX: '',
+    spawnY: '',
+    spawnZ: '',
+    spawnH: ''
+  },
   shopItemsModalShopId: 0,
   shopVehiclesModalShopId: 0,
   newRoleInsertAfter: ''
@@ -90,6 +103,19 @@ function post(action, data = {}) {
     headers: { 'Content-Type': 'application/json; charset=UTF-8' },
     body: JSON.stringify({ action, data })
   });
+}
+
+async function postNui(endpoint, data = {}) {
+  const response = await fetch(`https://${GetParentResourceName()}/${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify(data || {})
+  });
+  try {
+    return await response.json();
+  } catch (_error) {
+    return { ok: false };
+  }
 }
 
 function setFooter(text) {
@@ -676,18 +702,40 @@ function openGarageEditModal(garageId) {
   const useMarkerBtn = modal.querySelector('#editGarageUseCurrentMarkerBtn');
   if (useMarkerBtn) {
     useMarkerBtn.addEventListener('click', async () => {
-      await post('settings.garages.useCurrentMarkerCoords', {});
-      setFooter('Aktuelle Position wird als Marker übernommen ...');
-      closeGarageEditModal();
+      const result = await postNui('admin:getPlayerCoords', {});
+      if (!result || result.ok !== true || !result.coords) {
+        setFooter('Aktuelle Position konnte nicht gelesen werden.');
+        return;
+      }
+
+      const xInput = modal.querySelector('#editGarageX');
+      const yInput = modal.querySelector('#editGarageY');
+      const zInput = modal.querySelector('#editGarageZ');
+      if (xInput) xInput.value = String(Number(result.coords.x || 0).toFixed(2));
+      if (yInput) yInput.value = String(Number(result.coords.y || 0).toFixed(2));
+      if (zInput) zInput.value = String(Number(result.coords.z || 0).toFixed(2));
+      setFooter('Marker-Koordinaten aus aktueller Position übernommen.');
     });
   }
 
   const useSpawnBtn = modal.querySelector('#editGarageUseCurrentSpawnBtn');
   if (useSpawnBtn) {
     useSpawnBtn.addEventListener('click', async () => {
-      await post('settings.garages.useCurrentSpawnCoords', {});
-      setFooter('Aktuelle Position wird als Spawn übernommen ...');
-      closeGarageEditModal();
+      const result = await postNui('admin:getPlayerCoords', {});
+      if (!result || result.ok !== true || !result.coords) {
+        setFooter('Aktuelle Position konnte nicht gelesen werden.');
+        return;
+      }
+
+      const xInput = modal.querySelector('#editGarageSpawnX');
+      const yInput = modal.querySelector('#editGarageSpawnY');
+      const zInput = modal.querySelector('#editGarageSpawnZ');
+      const hInput = modal.querySelector('#editGarageSpawnH');
+      if (xInput) xInput.value = String(Number(result.coords.x || 0).toFixed(2));
+      if (yInput) yInput.value = String(Number(result.coords.y || 0).toFixed(2));
+      if (zInput) zInput.value = String(Number(result.coords.z || 0).toFixed(2));
+      if (hInput) hInput.value = String(Number(result.coords.h || 0).toFixed(2));
+      setFooter('Spawn-Koordinaten aus aktueller Position übernommen.');
     });
   }
 
@@ -1346,8 +1394,19 @@ function renderSettings() {
   const garagesRaw = settings.garages || [];
   const selectedType = String(state.settingsShopType || '').trim();
   const draft = settings.draftCoords || {};
-  const garageDraftMarkerCoords = settings.garageDraftMarkerCoords || {};
-  const garageDraftSpawnCoords = settings.garageDraftSpawnCoords || {};
+  const garageCreateDraft = state.garageCreateDraft || {
+    label: '',
+    garageCode: '',
+    blipEnabled: true,
+    enabled: true,
+    markerX: '',
+    markerY: '',
+    markerZ: '',
+    spawnX: '',
+    spawnY: '',
+    spawnZ: '',
+    spawnH: ''
+  };
   const typeLabels = {
     '24_7': '24/7 Shop',
     vehicle: 'Autohaus',
@@ -1429,21 +1488,21 @@ function renderSettings() {
         <div class="card">
           <h3>Neue Garage erstellen</h3>
           <div class="form-grid">
-            <input id="newGarageLabel" type="text" placeholder="Garagenname" />
-            <input id="newGarageCode" type="text" placeholder="Garage-Code (optional)" />
+            <input id="newGarageLabel" type="text" placeholder="Garagenname" value="${escapeHtml(garageCreateDraft.label || '')}" />
+            <input id="newGarageCode" type="text" placeholder="Garage-Code (optional)" value="${escapeHtml(garageCreateDraft.garageCode || '')}" />
             <div class="actions">
-              <label class="inline-check"><input id="newGarageBlipEnabled" type="checkbox" checked /> Blip anzeigen</label>
-              <label class="inline-check"><input id="newGarageEnabled" type="checkbox" checked /> Aktiv</label>
+              <label class="inline-check"><input id="newGarageBlipEnabled" type="checkbox" ${garageCreateDraft.blipEnabled !== false ? 'checked' : ''} /> Blip anzeigen</label>
+              <label class="inline-check"><input id="newGarageEnabled" type="checkbox" ${garageCreateDraft.enabled !== false ? 'checked' : ''} /> Aktiv</label>
             </div>
             <label class="muted">Marker (Einparken/Ausparken)</label>
-            <input id="newGarageX" type="number" step="0.01" placeholder="Marker X" value="${escapeHtml(garageDraftMarkerCoords.x ?? '')}" />
-            <input id="newGarageY" type="number" step="0.01" placeholder="Marker Y" value="${escapeHtml(garageDraftMarkerCoords.y ?? '')}" />
-            <input id="newGarageZ" type="number" step="0.01" placeholder="Marker Z" value="${escapeHtml(garageDraftMarkerCoords.z ?? '')}" />
+            <input id="newGarageX" type="number" step="0.01" placeholder="Marker X" value="${escapeHtml(garageCreateDraft.markerX ?? '')}" />
+            <input id="newGarageY" type="number" step="0.01" placeholder="Marker Y" value="${escapeHtml(garageCreateDraft.markerY ?? '')}" />
+            <input id="newGarageZ" type="number" step="0.01" placeholder="Marker Z" value="${escapeHtml(garageCreateDraft.markerZ ?? '')}" />
             <label class="muted">Spawn</label>
-            <input id="newGarageSpawnX" type="number" step="0.01" placeholder="Spawn X" value="${escapeHtml(garageDraftSpawnCoords.x ?? '')}" />
-            <input id="newGarageSpawnY" type="number" step="0.01" placeholder="Spawn Y" value="${escapeHtml(garageDraftSpawnCoords.y ?? '')}" />
-            <input id="newGarageSpawnZ" type="number" step="0.01" placeholder="Spawn Z" value="${escapeHtml(garageDraftSpawnCoords.z ?? '')}" />
-            <input id="newGarageSpawnH" type="number" step="0.01" placeholder="Spawn Heading" value="${escapeHtml(garageDraftSpawnCoords.h ?? '')}" />
+            <input id="newGarageSpawnX" type="number" step="0.01" placeholder="Spawn X" value="${escapeHtml(garageCreateDraft.spawnX ?? '')}" />
+            <input id="newGarageSpawnY" type="number" step="0.01" placeholder="Spawn Y" value="${escapeHtml(garageCreateDraft.spawnY ?? '')}" />
+            <input id="newGarageSpawnZ" type="number" step="0.01" placeholder="Spawn Z" value="${escapeHtml(garageCreateDraft.spawnZ ?? '')}" />
+            <input id="newGarageSpawnH" type="number" step="0.01" placeholder="Spawn Heading" value="${escapeHtml(garageCreateDraft.spawnH ?? '')}" />
           </div>
           <div class="actions" style="margin-top:10px;">
             ${canManage ? `<button class="btn ghost" id="useCurrentGarageMarkerCoordsBtn" type="button">Marker von aktueller Position</button>` : ''}
@@ -1944,16 +2003,52 @@ function bindCommonActions() {
   const useCurrentGarageMarkerCoordsBtn = document.getElementById('useCurrentGarageMarkerCoordsBtn');
   if (useCurrentGarageMarkerCoordsBtn) {
     useCurrentGarageMarkerCoordsBtn.addEventListener('click', async () => {
-      await post('settings.garages.useCurrentMarkerCoords', {});
-      setFooter('Aktuelle Position wird als Garage-Marker übernommen ...');
+      const result = await postNui('admin:getPlayerCoords', {});
+      if (!result || result.ok !== true || !result.coords) {
+        setFooter('Aktuelle Position konnte nicht gelesen werden.');
+        return;
+      }
+      const x = Number(result.coords.x || 0).toFixed(2);
+      const y = Number(result.coords.y || 0).toFixed(2);
+      const z = Number(result.coords.z || 0).toFixed(2);
+      state.garageCreateDraft.markerX = x;
+      state.garageCreateDraft.markerY = y;
+      state.garageCreateDraft.markerZ = z;
+      const xInput = document.getElementById('newGarageX');
+      const yInput = document.getElementById('newGarageY');
+      const zInput = document.getElementById('newGarageZ');
+      if (xInput) xInput.value = x;
+      if (yInput) yInput.value = y;
+      if (zInput) zInput.value = z;
+      setFooter('Marker-Koordinaten übernommen.');
     });
   }
 
   const useCurrentGarageSpawnCoordsBtn = document.getElementById('useCurrentGarageSpawnCoordsBtn');
   if (useCurrentGarageSpawnCoordsBtn) {
     useCurrentGarageSpawnCoordsBtn.addEventListener('click', async () => {
-      await post('settings.garages.useCurrentSpawnCoords', {});
-      setFooter('Aktuelle Position wird als Garage-Spawn übernommen ...');
+      const result = await postNui('admin:getPlayerCoords', {});
+      if (!result || result.ok !== true || !result.coords) {
+        setFooter('Aktuelle Position konnte nicht gelesen werden.');
+        return;
+      }
+      const x = Number(result.coords.x || 0).toFixed(2);
+      const y = Number(result.coords.y || 0).toFixed(2);
+      const z = Number(result.coords.z || 0).toFixed(2);
+      const h = Number(result.coords.h || 0).toFixed(2);
+      state.garageCreateDraft.spawnX = x;
+      state.garageCreateDraft.spawnY = y;
+      state.garageCreateDraft.spawnZ = z;
+      state.garageCreateDraft.spawnH = h;
+      const xInput = document.getElementById('newGarageSpawnX');
+      const yInput = document.getElementById('newGarageSpawnY');
+      const zInput = document.getElementById('newGarageSpawnZ');
+      const hInput = document.getElementById('newGarageSpawnH');
+      if (xInput) xInput.value = x;
+      if (yInput) yInput.value = y;
+      if (zInput) zInput.value = z;
+      if (hInput) hInput.value = h;
+      setFooter('Spawn-Koordinaten übernommen.');
     });
   }
 
@@ -1979,9 +2074,66 @@ function bindCommonActions() {
       };
 
       await post('settings.garages.create', payload);
+      state.garageCreateDraft = {
+        label: '',
+        garageCode: '',
+        blipEnabled: true,
+        enabled: true,
+        markerX: '',
+        markerY: '',
+        markerZ: '',
+        spawnX: '',
+        spawnY: '',
+        spawnZ: '',
+        spawnH: ''
+      };
       setFooter('Garage wird erstellt ...');
+      render();
     });
   }
+
+  const newGarageLabelInput = document.getElementById('newGarageLabel');
+  if (newGarageLabelInput) {
+    newGarageLabelInput.addEventListener('input', () => {
+      state.garageCreateDraft.label = newGarageLabelInput.value || '';
+    });
+  }
+
+  const newGarageCodeInput = document.getElementById('newGarageCode');
+  if (newGarageCodeInput) {
+    newGarageCodeInput.addEventListener('input', () => {
+      state.garageCreateDraft.garageCode = newGarageCodeInput.value || '';
+    });
+  }
+
+  const newGarageBlipEnabledInput = document.getElementById('newGarageBlipEnabled');
+  if (newGarageBlipEnabledInput) {
+    newGarageBlipEnabledInput.addEventListener('change', () => {
+      state.garageCreateDraft.blipEnabled = newGarageBlipEnabledInput.checked === true;
+    });
+  }
+
+  const newGarageEnabledInput = document.getElementById('newGarageEnabled');
+  if (newGarageEnabledInput) {
+    newGarageEnabledInput.addEventListener('change', () => {
+      state.garageCreateDraft.enabled = newGarageEnabledInput.checked === true;
+    });
+  }
+
+  const bindGarageCoordInput = (id, field) => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.addEventListener('input', () => {
+      state.garageCreateDraft[field] = input.value || '';
+    });
+  };
+  bindGarageCoordInput('newGarageX', 'markerX');
+  bindGarageCoordInput('newGarageY', 'markerY');
+  bindGarageCoordInput('newGarageZ', 'markerZ');
+  bindGarageCoordInput('newGarageSpawnX', 'spawnX');
+  bindGarageCoordInput('newGarageSpawnY', 'spawnY');
+  bindGarageCoordInput('newGarageSpawnZ', 'spawnZ');
+  bindGarageCoordInput('newGarageSpawnH', 'spawnH');
 
   const newShopVehicleSelect = document.getElementById('newShopVehicleId');
   const newShopVehiclePrice = document.getElementById('newShopVehiclePrice');
