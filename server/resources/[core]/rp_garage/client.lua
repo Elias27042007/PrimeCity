@@ -73,46 +73,115 @@ RegisterNUICallback('garage:spawnVehicle', function(data, cb)
   cb({ ok = true })
 end)
 
-RegisterNUICallback('garage:storeVehicle', function(_, cb)
-  local ped = PlayerPedId()
-  local vehicle = GetVehiclePedIsIn(ped, false)
+RegisterNUICallback('garage:storeVehicle', function(data, cb)
+  local mode = type(data) == 'table' and tostring(data.mode or 'all') or 'all'
+  local targetVehicleId = type(data) == 'table' and tonumber(data.vehicleId or 0) or 0
+  local targetPlate = type(data) == 'table' and tostring(data.plate or '') or ''
+  local searchRadius = 30.0
 
-  if vehicle == 0 or GetPedInVehicleSeat(vehicle, -1) ~= ped then
-    vehicle = 0
+  local function normalizePlate(plate)
+    return tostring(plate or ''):upper():gsub('%s+', ' '):gsub('^%s*(.-)%s*$', '%1')
+  end
 
+  local function notifyLocal(message)
+    TriggerEvent('rp:notify', {
+      type = 'error',
+      title = 'Garage',
+      message = tostring(message or 'Einparken fehlgeschlagen.')
+    })
+  end
+
+  local function buildEntry(vehicle)
+    local plate = normalizePlate(GetVehicleNumberPlateText(vehicle))
+    if plate == '' then
+      return nil
+    end
+
+    local state = exports.rp_vehicles:GetVehicleState(vehicle)
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+    return {
+      plate = plate,
+      state = state,
+      netId = netId
+    }
+  end
+
+  local function getNearbyVehicles(radius)
+    local ped = PlayerPedId()
     local pedCoords = GetEntityCoords(ped)
-    local nearestVehicle = 0
-    local nearestDistance = 30.0
     local allVehicles = GetGamePool('CVehicle')
+    local out = {}
 
     for i = 1, #allVehicles do
-      local candidate = allVehicles[i]
-      if candidate and candidate ~= 0 and DoesEntityExist(candidate) then
-        local candidateCoords = GetEntityCoords(candidate)
-        local distance = #(pedCoords - candidateCoords)
-        if distance <= nearestDistance then
-          nearestDistance = distance
-          nearestVehicle = candidate
+      local vehicle = allVehicles[i]
+      if vehicle and vehicle ~= 0 and DoesEntityExist(vehicle) then
+        local coords = GetEntityCoords(vehicle)
+        local distance = #(pedCoords - coords)
+        if distance <= radius then
+          out[#out + 1] = vehicle
         end
       end
     end
 
-    vehicle = nearestVehicle
+    return out
   end
 
-  if vehicle == 0 or not DoesEntityExist(vehicle) then
-    cb({ ok = false, message = 'Kein Fahrzeug in deiner Nähe (30m) gefunden.' })
-    return
-  end
+  local entries = {}
 
-  local plate = GetVehicleNumberPlateText(vehicle)
-  local state = exports.rp_vehicles:GetVehicleState(vehicle)
-  local netId = NetworkGetNetworkIdFromEntity(vehicle)
+  if mode == 'single' then
+    local wantedPlate = normalizePlate(targetPlate)
+    if wantedPlate == '' or targetVehicleId <= 0 then
+      notifyLocal('Ungültiges Fahrzeug zum Einparken.')
+      cb({ ok = false, message = 'Ungültiges Fahrzeug zum Einparken.' })
+      return
+    end
+
+    local nearbyVehicles = getNearbyVehicles(searchRadius)
+    local foundVehicle = 0
+
+    for i = 1, #nearbyVehicles do
+      local vehicle = nearbyVehicles[i]
+      if normalizePlate(GetVehicleNumberPlateText(vehicle)) == wantedPlate then
+        foundVehicle = vehicle
+        break
+      end
+    end
+
+    if foundVehicle == 0 then
+      notifyLocal('Dieses Fahrzeug steht nicht in 30m Nähe.')
+      cb({ ok = false, message = 'Dieses Fahrzeug steht nicht in 30m Nähe.' })
+      return
+    end
+
+    local entry = buildEntry(foundVehicle)
+    if not entry then
+      notifyLocal('Kennzeichen konnte nicht gelesen werden.')
+      cb({ ok = false, message = 'Kennzeichen konnte nicht gelesen werden.' })
+      return
+    end
+
+    entries[1] = entry
+  else
+    local nearbyVehicles = getNearbyVehicles(searchRadius)
+    for i = 1, #nearbyVehicles do
+      local entry = buildEntry(nearbyVehicles[i])
+      if entry then
+        entries[#entries + 1] = entry
+      end
+    end
+
+    if #entries == 0 then
+      notifyLocal('Kein Fahrzeug in deiner Nähe (30m) gefunden.')
+      cb({ ok = false, message = 'Kein Fahrzeug in deiner Nähe (30m) gefunden.' })
+      return
+    end
+  end
 
   TriggerServerEvent('rp:garage:storeVehicle', {
-    plate = tostring(plate or ''),
-    state = state,
-    netId = netId
+    mode = mode,
+    vehicleId = targetVehicleId,
+    plate = normalizePlate(targetPlate),
+    entries = entries
   })
 
   cb({ ok = true })

@@ -41,17 +41,27 @@ const render = () => {
   }
 
   filtered.forEach((vehicle) => {
+    const isStored = Number(vehicle.stored) === 1;
+    const actionLabel = isStored ? 'Ausparken' : 'Einparken';
     const row = document.createElement('div');
     row.className = 'row';
     row.innerHTML = `
       <strong>${vehicle.label} (${vehicle.plate})</strong>
-      <p>Status: ${Number(vehicle.stored) === 1 ? 'Eingeparkt' : 'Ausgeparkt'}</p>
+      <p>Status: ${isStored ? 'Eingeparkt' : 'Ausgeparkt'}</p>
       <p>Zustand: Motor ${Math.round(vehicle.engine_health || 1000)} | Karosserie ${Math.round(vehicle.body_health || 1000)}</p>
-      <button ${Number(vehicle.stored) !== 1 ? 'disabled' : ''}>Ausparken</button>
+      <button>${actionLabel}</button>
     `;
 
     row.querySelector('button').addEventListener('click', async () => {
-      await post('garage:spawnVehicle', { vehicleId: vehicle.id });
+      if (isStored) {
+        await post('garage:spawnVehicle', { vehicleId: vehicle.id });
+      } else {
+        await post('garage:storeVehicle', {
+          mode: 'single',
+          vehicleId: vehicle.id,
+          plate: vehicle.plate
+        });
+      }
     });
 
     listEl.appendChild(row);
@@ -78,7 +88,7 @@ closeBtn.addEventListener('click', async () => {
 });
 
 storeBtn.addEventListener('click', async () => {
-  await post('garage:storeVehicle');
+  await post('garage:storeVehicle', { mode: 'all' });
 });
 
 searchInput.addEventListener('input', () => {

@@ -200,55 +200,148 @@ RegisterNetEvent('rp:garage:spawnVehicle', function(vehicleId)
   TriggerClientEvent('rp:garage:closeUI', src)
 end)
 
+local function normalizePlate(value)
+  return tostring(value or ''):upper():gsub('%s+', ' '):gsub('^%s*(.-)%s*$', '%1')
+end
+
+local function extractPropsFromEntry(entry)
+  local vehicleState = (type(entry) == 'table' and type(entry.state) == 'table') and entry.state or {}
+  return {
+    fuel = tonumber(vehicleState.fuel) or 100.0,
+    engineHealth = tonumber(vehicleState.engineHealth) or 1000.0,
+    bodyHealth = tonumber(vehicleState.bodyHealth) or 1000.0
+  }
+end
+
 RegisterNetEvent('rp:garage:storeVehicle', function(data)
   local src = source
   local session = validateGarageSession(src)
   if not session then return end
   if not exports.rp_core:CanUseRateLimitedAction(src, 'garage_store', 1000) then return end
 
-  if type(data) ~= 'table' then return end
-  local plate = tostring(data.plate or '')
-  if plate == '' then
-    notify(src, 'error', 'Garage', 'Kennzeichen fehlt.')
+  if type(data) ~= 'table' then
     return
   end
 
   local characterId = exports.rp_core:GetCharacterId(src)
   if not characterId then return end
 
-  local row = MySQL.single.await(
-    'SELECT id FROM owned_vehicles WHERE character_id = ? AND plate = ? LIMIT 1',
-    { characterId, plate }
-  )
+  local mode = tostring(data.mode or 'all')
+  local entries = type(data.entries) == 'table' and data.entries or {}
+  local entriesByPlate = {}
 
-  if not row then
-    notify(src, 'error', 'Garage', 'Dieses Fahrzeug gehoert dir nicht.')
+  for i = 1, #entries do
+    local entry = entries[i]
+    if type(entry) == 'table' then
+      local plate = normalizePlate(entry.plate)
+      if plate ~= '' and not entriesByPlate[plate] then
+        entriesByPlate[plate] = entry
+      end
+    end
+  end
+
+  if mode == 'single' then
+    local vehicleId = tonumber(data.vehicleId or 0) or 0
+    local selectedPlate = normalizePlate(data.plate)
+    local row
+
+    if vehicleId > 0 then
+      row = MySQL.single.await(
+        'SELECT id, plate, stored FROM owned_vehicles WHERE id = ? AND character_id = ? LIMIT 1',
+        { vehicleId, characterId }
+      )
+    elseif selectedPlate ~= '' then
+      row = MySQL.single.await(
+        'SELECT id, plate, stored FROM owned_vehicles WHERE plate = ? AND character_id = ? LIMIT 1',
+        { selectedPlate, characterId }
+      )
+    end
+
+    if not row then
+      notify(src, 'error', 'Garage', 'Dieses Fahrzeug gehoert dir nicht.')
+      return
+    end
+
+    if toStoredFlag(row.stored) == 1 then
+      notify(src, 'error', 'Garage', 'Dieses Fahrzeug ist bereits eingeparkt.')
+      openGarage(src, session.garageId)
+      return
+    end
+
+    local rowPlate = normalizePlate(row.plate)
+    local matchedEntry = entriesByPlate[rowPlate]
+    if not matchedEntry then
+      notify(src, 'error', 'Garage', 'Dieses Fahrzeug steht nicht in deiner Nähe (30m).')
+      return
+    end
+
+    local props = extractPropsFromEntry(matchedEntry)
+
+    MySQL.update.await(
+      [=[UPDATE owned_vehicles
+         SET stored = 1, garage_id = ?, props_json = ?, fuel = ?, engine_health = ?, body_health = ?
+         WHERE id = ?]=],
+      {
+        session.garageId,
+        json.encode(props),
+        props.fuel,
+        props.engineHealth,
+        props.bodyHealth,
+        row.id
+      }
+    )
+
+    TriggerClientEvent('rp:garage:storeSuccess', src, tonumber(matchedEntry.netId))
+    notify(src, 'success', 'Garage', ('Fahrzeug %s eingeparkt.'):format(rowPlate))
+    openGarage(src, session.garageId)
     return
   end
 
-  local vehicleState = data.state or {}
-  local props = {
-    fuel = tonumber(vehicleState.fuel) or 100.0,
-    engineHealth = tonumber(vehicleState.engineHealth) or 1000.0,
-    bodyHealth = tonumber(vehicleState.bodyHealth) or 1000.0
-  }
+  local rows = MySQL.query.await(
+    'SELECT id, plate, stored FROM owned_vehicles WHERE character_id = ? AND stored = 0',
+    { characterId }
+  ) or {}
 
-  MySQL.update.await(
-    [=[UPDATE owned_vehicles
-       SET stored = 1, garage_id = ?, props_json = ?, fuel = ?, engine_health = ?, body_health = ?
-       WHERE id = ?]=],
-    {
-      session.garageId,
-      json.encode(props),
-      props.fuel,
-      props.engineHealth,
-      props.bodyHealth,
-      row.id
-    }
-  )
+  if #rows == 0 then
+    notify(src, 'error', 'Garage', 'Du hast keine ausgeparkten Fahrzeuge.')
+    openGarage(src, session.garageId)
+    return
+  end
 
-  TriggerClientEvent('rp:garage:storeSuccess', src, tonumber(data.netId))
-  notify(src, 'success', 'Garage', 'Fahrzeug eingeparkt.')
+  local storedCount = 0
+  for i = 1, #rows do
+    local row = rows[i]
+    local rowPlate = normalizePlate(row.plate)
+    local matchedEntry = entriesByPlate[rowPlate]
+
+    if matchedEntry then
+      local props = extractPropsFromEntry(matchedEntry)
+      MySQL.update.await(
+        [=[UPDATE owned_vehicles
+           SET stored = 1, garage_id = ?, props_json = ?, fuel = ?, engine_health = ?, body_health = ?
+           WHERE id = ?]=],
+        {
+          session.garageId,
+          json.encode(props),
+          props.fuel,
+          props.engineHealth,
+          props.bodyHealth,
+          row.id
+        }
+      )
+
+      TriggerClientEvent('rp:garage:storeSuccess', src, tonumber(matchedEntry.netId))
+      storedCount = storedCount + 1
+    end
+  end
+
+  if storedCount <= 0 then
+    notify(src, 'error', 'Garage', 'Keine deiner Fahrzeuge in 30m Nähe gefunden.')
+    openGarage(src, session.garageId)
+    return
+  end
+
+  notify(src, 'success', 'Garage', ('%s Fahrzeug(e) eingeparkt.'):format(storedCount))
   openGarage(src, session.garageId)
 end)
 
