@@ -5,6 +5,7 @@ local creatorViewLockThreadRunning = false
 local creatorCam = nil
 local creatorAnchor = nil
 local creatorCameraYawOffset = 0.0
+local creatorCameraDistance = nil
 local cancelSnapshot = nil
 
 local function clampInt(value, minValue, maxValue)
@@ -58,6 +59,7 @@ local function destroyCreatorCamera()
   creatorCam = nil
   creatorAnchor = nil
   creatorCameraYawOffset = 0.0
+  creatorCameraDistance = nil
   ClearFocus()
 end
 
@@ -76,7 +78,11 @@ local function updateCreatorCamera()
   end
 
   local cfg = RPSkinConfig.camera or {}
-  local distance = tonumber(cfg.distance) or 9.0
+  local baseDistance = tonumber(cfg.distance) or 9.0
+  if type(creatorCameraDistance) ~= 'number' then
+    creatorCameraDistance = baseDistance
+  end
+  local distance = creatorCameraDistance
   local height = tonumber(cfg.height) or 1.05
   local targetHeight = tonumber(cfg.targetHeight) or -0.2
   local fov = tonumber(cfg.fov) or 58.0
@@ -105,6 +111,28 @@ local function updateCreatorCamera()
 
   SetCamActive(creatorCam, true)
   RenderScriptCams(true, false, 0, true, true)
+end
+
+local function adjustCreatorCameraDistance(direction)
+  local cfg = RPSkinConfig.camera or {}
+  local baseDistance = tonumber(cfg.distance) or 9.0
+  local zoomStep = tonumber(cfg.zoomStep) or 0.3
+  local zoomMin = tonumber(cfg.minDistance) or 1.8
+  local zoomMax = tonumber(cfg.maxDistance) or 9.5
+
+  if type(creatorCameraDistance) ~= 'number' then
+    creatorCameraDistance = baseDistance
+  end
+
+  local nextDistance = creatorCameraDistance + (zoomStep * (tonumber(direction) or 0))
+  if nextDistance < zoomMin then
+    nextDistance = zoomMin
+  elseif nextDistance > zoomMax then
+    nextDistance = zoomMax
+  end
+
+  creatorCameraDistance = nextDistance
+  updateCreatorCamera()
 end
 
 local function setCreatorAnchorFromPed()
@@ -173,6 +201,12 @@ local function ensureCreatorViewLockThread()
       DisableControlAction(0, 25, true)   -- Aim
       DisableControlAction(0, 241, true)  -- Mouse wheel up
       DisableControlAction(0, 242, true)  -- Mouse wheel down
+      if IsDisabledControlJustPressed(0, 241) or IsControlJustPressed(0, 241) then
+        adjustCreatorCameraDistance(-1)
+      end
+      if IsDisabledControlJustPressed(0, 242) or IsControlJustPressed(0, 242) then
+        adjustCreatorCameraDistance(1)
+      end
 
       Wait(0)
     end
@@ -505,6 +539,7 @@ local function openCreator(defaults)
   currentSex = initial.sex
   currentMode = tostring(defaults and defaults.mode or 'creator')
   creatorCameraYawOffset = 0.0
+  creatorCameraDistance = tonumber((RPSkinConfig.camera or {}).distance) or 9.0
 
   if defaults and defaults.model and defaults.model ~= '' then
     loadModel(defaults.model)

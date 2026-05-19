@@ -4,7 +4,13 @@ local currentMode = 'create'
 local function setUI(open, payload)
   isOpen = open
   if open then
-    currentMode = (type(payload) == 'table' and payload.mode == 'update') and 'update' or 'create'
+    if type(payload) == 'table' and payload.mode == 'update' then
+      currentMode = 'update'
+    elseif type(payload) == 'table' and payload.mode == 'admin_create' then
+      currentMode = 'admin_create'
+    else
+      currentMode = 'create'
+    end
   else
     currentMode = 'create'
   end

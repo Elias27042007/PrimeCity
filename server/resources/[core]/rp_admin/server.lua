@@ -4971,14 +4971,34 @@ RegisterCommand(RPAdminConfig.identityCommand or 'identity', function(source, ar
   end
 
   local success, result = exports.rp_identity:OpenIdentityEditor(targetSource, source)
+  local openedMode = 'update'
   if not success then
-    notify(source, 'error', tostring(result or 'Identity-Menü konnte nicht geöffnet werden.'))
-    return
+    local reason = tostring(result or '')
+    local reasonLower = reason:lower()
+    local canFallbackToCreator =
+      reasonLower:find('kein aktiver charakter', 1, true) ~= nil or
+      reasonLower:find('keinen aktiven charakter', 1, true) ~= nil or
+      reasonLower:find('nicht geladen', 1, true) ~= nil
+
+    if canFallbackToCreator then
+      local fallbackSuccess, fallbackResult = exports.rp_identity:OpenIdentityCreator(targetSource, source)
+      if not fallbackSuccess then
+        notify(source, 'error', tostring(fallbackResult or reason or 'Identity-Menü konnte nicht geöffnet werden.'))
+        return
+      end
+
+      success = true
+      result = fallbackResult
+      openedMode = 'admin_create'
+    else
+      notify(source, 'error', tostring(result or 'Identity-Menü konnte nicht geöffnet werden.'))
+      return
+    end
   end
 
   local actorUserId = getUserIdFromSource(source)
   local targetUserId = getUserIdFromSource(targetSource)
-  auditAction(actorUserId, 'command.identity', targetUserId, { targetSource = targetSource })
+  auditAction(actorUserId, 'command.identity', targetUserId, { targetSource = targetSource, mode = openedMode })
 
   notify(source, 'success', ('Identity-Menü für %s (ID %s) geöffnet.'):format(getProfileNameBySource(targetSource), targetSource))
   notify(targetSource, 'info', ('%s hat dein Identity-Menü geöffnet.'):format(getProfileNameBySource(source)))
