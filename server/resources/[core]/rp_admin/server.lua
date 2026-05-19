@@ -991,9 +991,13 @@ local function ensureAdminSchema()
   MySQL.query.await([[
     CREATE TABLE IF NOT EXISTS admin_role_duty_outfits (
       role_id BIGINT UNSIGNED NOT NULL,
+      tshirt_drawable INT NOT NULL DEFAULT 15,
       top_drawable INT NOT NULL DEFAULT 15,
+      top_texture INT NOT NULL DEFAULT 0,
       pants_drawable INT NOT NULL DEFAULT 14,
+      pants_texture INT NOT NULL DEFAULT 0,
       shoes_drawable INT NOT NULL DEFAULT 34,
+      mask_drawable INT NOT NULL DEFAULT -1,
       hat_drawable INT NOT NULL DEFAULT -1,
       updated_by_user_id BIGINT UNSIGNED NULL,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1002,6 +1006,22 @@ local function ensureAdminSchema()
       CONSTRAINT fk_admin_role_duty_outfits_updated_by FOREIGN KEY (updated_by_user_id) REFERENCES users (id) ON DELETE SET NULL ON UPDATE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   ]])
+
+  if not hasColumn('admin_role_duty_outfits', 'tshirt_drawable') then
+    MySQL.query.await('ALTER TABLE admin_role_duty_outfits ADD COLUMN tshirt_drawable INT NOT NULL DEFAULT 15 AFTER role_id')
+  end
+
+  if not hasColumn('admin_role_duty_outfits', 'top_texture') then
+    MySQL.query.await('ALTER TABLE admin_role_duty_outfits ADD COLUMN top_texture INT NOT NULL DEFAULT 0 AFTER top_drawable')
+  end
+
+  if not hasColumn('admin_role_duty_outfits', 'pants_texture') then
+    MySQL.query.await('ALTER TABLE admin_role_duty_outfits ADD COLUMN pants_texture INT NOT NULL DEFAULT 0 AFTER pants_drawable')
+  end
+
+  if not hasColumn('admin_role_duty_outfits', 'mask_drawable') then
+    MySQL.query.await('ALTER TABLE admin_role_duty_outfits ADD COLUMN mask_drawable INT NOT NULL DEFAULT -1 AFTER shoes_drawable')
+  end
 
   MySQL.query.await([[
     CREATE TABLE IF NOT EXISTS admin_bans (
@@ -1184,8 +1204,9 @@ local function bootstrapAdminData()
   ]])
 
   MySQL.query.await([[
-    INSERT IGNORE INTO admin_role_duty_outfits (role_id, top_drawable, pants_drawable, shoes_drawable, hat_drawable)
+    INSERT IGNORE INTO admin_role_duty_outfits (role_id, tshirt_drawable, top_drawable, top_texture, pants_drawable, pants_texture, shoes_drawable, mask_drawable, hat_drawable)
     SELECT r.id,
+      15 AS tshirt_drawable,
       CASE
         WHEN r.role_name = 'supporter' THEN 59
         WHEN r.role_name = 'moderator' THEN 179
@@ -1194,8 +1215,11 @@ local function bootstrapAdminData()
         WHEN r.role_name = 'projektleitung' THEN 316
         ELSE 15
       END AS top_drawable,
+      0 AS top_texture,
       14 AS pants_drawable,
+      0 AS pants_texture,
       34 AS shoes_drawable,
+      -1 AS mask_drawable,
       -1 AS hat_drawable
     FROM admin_roles r
   ]])
@@ -1649,10 +1673,13 @@ end
 local function fetchRoleDutyOutfits()
   local rows = MySQL.query.await([=[
     SELECT r.role_name, r.label,
+           COALESCE(o.tshirt_drawable, 15) AS tshirt_drawable,
            COALESCE(o.top_drawable, 15) AS top_drawable,
+           COALESCE(o.top_texture, 0) AS top_texture,
            COALESCE(o.pants_drawable, 14) AS pants_drawable,
+           COALESCE(o.pants_texture, 0) AS pants_texture,
            COALESCE(o.shoes_drawable, 34) AS shoes_drawable,
-           COALESCE(o.hat_drawable, -1) AS hat_drawable
+           COALESCE(o.mask_drawable, -1) AS mask_drawable
     FROM admin_roles r
     LEFT JOIN admin_role_duty_outfits o ON o.role_id = r.id
     ORDER BY r.priority ASC
@@ -1664,10 +1691,13 @@ local function fetchRoleDutyOutfits()
     out[row.role_name] = {
       roleName = row.role_name,
       roleLabel = row.label,
+      tshirt = tonumber(row.tshirt_drawable) or 15,
       top = tonumber(row.top_drawable) or 15,
+      top2 = tonumber(row.top_texture) or 0,
       pants = tonumber(row.pants_drawable) or 14,
+      pants2 = tonumber(row.pants_texture) or 0,
       shoes = tonumber(row.shoes_drawable) or 34,
-      hat = tonumber(row.hat_drawable) or -1
+      mask = tonumber(row.mask_drawable) or -1
     }
   end
 
@@ -1681,10 +1711,13 @@ local function getDutyOutfitByRoleName(roleName)
   end
 
   local row = MySQL.single.await([=[
-    SELECT COALESCE(o.top_drawable, 15) AS top_drawable,
+    SELECT COALESCE(o.tshirt_drawable, 15) AS tshirt_drawable,
+           COALESCE(o.top_drawable, 15) AS top_drawable,
+           COALESCE(o.top_texture, 0) AS top_texture,
            COALESCE(o.pants_drawable, 14) AS pants_drawable,
+           COALESCE(o.pants_texture, 0) AS pants_texture,
            COALESCE(o.shoes_drawable, 34) AS shoes_drawable,
-           COALESCE(o.hat_drawable, -1) AS hat_drawable
+           COALESCE(o.mask_drawable, -1) AS mask_drawable
     FROM admin_roles r
     LEFT JOIN admin_role_duty_outfits o ON o.role_id = r.id
     WHERE r.role_name = ?
@@ -1696,10 +1729,13 @@ local function getDutyOutfitByRoleName(roleName)
   end
 
   return {
+    tshirt = tonumber(row.tshirt_drawable) or 15,
     top = tonumber(row.top_drawable) or 15,
+    top2 = tonumber(row.top_texture) or 0,
     pants = tonumber(row.pants_drawable) or 14,
+    pants2 = tonumber(row.pants_texture) or 0,
     shoes = tonumber(row.shoes_drawable) or 34,
-    hat = tonumber(row.hat_drawable) or -1
+    mask = tonumber(row.mask_drawable) or -1
   }
 end
 
@@ -2393,29 +2429,38 @@ local function setRoleDutyOutfit(actorSource, roleName, values)
     return
   end
 
+  local tshirt = toDrawable(values.tshirt, 15, 0, 500)
   local top = toDrawable(values.top, 15, 0, 500)
+  local top2 = toDrawable(values.top2, 0, 0, 500)
   local pants = toDrawable(values.pants, 14, 0, 500)
+  local pants2 = toDrawable(values.pants2, 0, 0, 500)
   local shoes = toDrawable(values.shoes, 34, 0, 500)
-  local hat = toDrawable(values.hat, -1, -1, 250)
+  local mask = toDrawable(values.mask, -1, -1, 500)
   local actorUserId = getUserIdFromSource(actorSource)
 
   MySQL.query.await([[
-    INSERT INTO admin_role_duty_outfits (role_id, top_drawable, pants_drawable, shoes_drawable, hat_drawable, updated_by_user_id)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO admin_role_duty_outfits (role_id, tshirt_drawable, top_drawable, top_texture, pants_drawable, pants_texture, shoes_drawable, mask_drawable, updated_by_user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
+      tshirt_drawable = VALUES(tshirt_drawable),
       top_drawable = VALUES(top_drawable),
+      top_texture = VALUES(top_texture),
       pants_drawable = VALUES(pants_drawable),
+      pants_texture = VALUES(pants_texture),
       shoes_drawable = VALUES(shoes_drawable),
-      hat_drawable = VALUES(hat_drawable),
+      mask_drawable = VALUES(mask_drawable),
       updated_by_user_id = VALUES(updated_by_user_id)
-  ]], { role.id, top, pants, shoes, hat, actorUserId })
+  ]], { role.id, tshirt, top, top2, pants, pants2, shoes, mask, actorUserId })
 
   auditAction(actorUserId, 'rights.set_duty_outfit', nil, {
     roleName = roleName,
+    tshirt = tshirt,
     top = top,
+    top2 = top2,
     pants = pants,
+    pants2 = pants2,
     shoes = shoes,
-    hat = hat
+    mask = mask
   })
 
   notify(actorSource, 'success', ('Admin-Duty-Outfit für "%s" wurde gespeichert.'):format(role.label))
@@ -4942,9 +4987,9 @@ RegisterCommand(RPAdminConfig.skinCommand or 'skin', function(source, args)
   notify(targetSource, 'info', ('%s hat dein Skin-Menü geöffnet.'):format(getProfileNameBySource(source)))
 end, false)
 
-RegisterCommand(RPAdminConfig.identityCommand or 'identity', function(source, args)
+local function handleIdentityCommand(source, args, commandName)
   if source <= 0 then
-    print(('[rp_admin] Nutze den Befehl /%s [id] im Spiel.'):format(RPAdminConfig.identityCommand or 'identity'))
+    print(('[rp_admin] Nutze den Befehl /%s [id] im Spiel.'):format(commandName or (RPAdminConfig.identityCommand or 'identity')))
     return
   end
 
@@ -4956,12 +5001,12 @@ RegisterCommand(RPAdminConfig.identityCommand or 'identity', function(source, ar
     return
   end
 
-  local targetSource = getTargetSourceFromCommandArg(source, args and args[1], ('/%s'):format(RPAdminConfig.identityCommand or 'identity'), false)
+  local targetSource = getTargetSourceFromCommandArg(source, args and args[1], ('/%s'):format(commandName or (RPAdminConfig.identityCommand or 'identity')), true)
   if not targetSource then
     return
   end
 
-  if not canAffectTargetByHierarchy(source, targetSource, 'Du kannst die Identität von gleich hohen oder höheren Rängen nicht ändern.') then
+  if targetSource ~= source and not canAffectTargetByHierarchy(source, targetSource, 'Du kannst die Identität von gleich hohen oder höheren Rängen nicht ändern.') then
     return
   end
 
@@ -5002,6 +5047,14 @@ RegisterCommand(RPAdminConfig.identityCommand or 'identity', function(source, ar
 
   notify(source, 'success', ('Identity-Menü für %s (ID %s) geöffnet.'):format(getProfileNameBySource(targetSource), targetSource))
   notify(targetSource, 'info', ('%s hat dein Identity-Menü geöffnet.'):format(getProfileNameBySource(source)))
+end
+
+RegisterCommand(RPAdminConfig.identityCommand or 'identity', function(source, args)
+  handleIdentityCommand(source, args, RPAdminConfig.identityCommand or 'identity')
+end, false)
+
+RegisterCommand('identitiy', function(source, args)
+  handleIdentityCommand(source, args, 'identitiy')
 end, false)
 
 RegisterCommand(RPAdminConfig.noclipCommand or 'noclip', function(source)

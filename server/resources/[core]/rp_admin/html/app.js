@@ -1025,7 +1025,7 @@ function renderRights() {
   const selectedRole = roles.find((role) => role.role_name === selectedRoleName) || null;
   const selectedRolePerms = new Set(matrix[selectedRoleName] || []);
   const membersForRole = roleMembers.filter((member) => member.roleName === selectedRoleName);
-  const selectedDutyOutfit = roleDutyOutfits[selectedRoleName] || { top: 15, pants: 14, shoes: 34, hat: -1 };
+  const selectedDutyOutfit = roleDutyOutfits[selectedRoleName] || { tshirt: 15, top: 15, top2: 0, pants: 14, pants2: 0, shoes: 34, mask: -1 };
   const rolesByImportance = [...roles].sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
 
   if (!state.newRoleInsertAfter) {
@@ -1156,20 +1156,32 @@ function renderRights() {
         <p class="muted">Diese Werte werden für <strong>${escapeHtml(selectedRole?.label || '-')}</strong> bei <code>/aduty</code> verwendet.</p>
         <div class="form-grid" style="grid-template-columns: repeat(2, minmax(160px, 1fr)); gap: 10px;">
           <label>
+            TShirt 1 (8)
+            <input id="rightsDutyTshirt" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.tshirt)}" />
+          </label>
+          <label>
             Oberteil (11)
             <input id="rightsDutyTop" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.top)}" />
+          </label>
+          <label>
+            Oberteil 2 (11 Texture)
+            <input id="rightsDutyTop2" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.top2)}" />
           </label>
           <label>
             Hose (4)
             <input id="rightsDutyPants" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.pants)}" />
           </label>
           <label>
+            Hose 2 (4 Texture)
+            <input id="rightsDutyPants2" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.pants2)}" />
+          </label>
+          <label>
             Schuhe (6)
             <input id="rightsDutyShoes" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.shoes)}" />
           </label>
           <label>
-            Hut/Helm (Prop 0, -1 = aus)
-            <input id="rightsDutyHat" type="number" min="-1" max="250" value="${escapeHtml(selectedDutyOutfit.hat)}" />
+            Maske (1, -1 = aus)
+            <input id="rightsDutyMask" type="number" min="-1" max="500" value="${escapeHtml(selectedDutyOutfit.mask)}" />
           </label>
         </div>
         <div class="actions" style="margin-top:10px;">
@@ -1613,10 +1625,13 @@ function bindCommonActions() {
     saveRoleDutyOutfitBtn.addEventListener('click', async () => {
       const roleName = getSelectedRightsRole();
       const values = {
+        tshirt: Number(document.getElementById('rightsDutyTshirt')?.value ?? 15),
         top: Number(document.getElementById('rightsDutyTop')?.value ?? 15),
+        top2: Number(document.getElementById('rightsDutyTop2')?.value ?? 0),
         pants: Number(document.getElementById('rightsDutyPants')?.value ?? 14),
+        pants2: Number(document.getElementById('rightsDutyPants2')?.value ?? 0),
         shoes: Number(document.getElementById('rightsDutyShoes')?.value ?? 34),
-        hat: Number(document.getElementById('rightsDutyHat')?.value ?? -1)
+        mask: Number(document.getElementById('rightsDutyMask')?.value ?? -1)
       };
 
       await post('rights.setRoleDutyOutfit', { roleName, values });

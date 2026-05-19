@@ -9,6 +9,30 @@ local function notify(source, ntype, title, message)
   })
 end
 
+local function toStoredFlag(value)
+  if value == true then
+    return 1
+  end
+  if value == false then
+    return 0
+  end
+
+  local number = tonumber(value)
+  if number then
+    return number >= 1 and 1 or 0
+  end
+
+  local text = tostring(value or ''):lower()
+  if text == 'true' then
+    return 1
+  end
+  if text == 'false' then
+    return 0
+  end
+
+  return 0
+end
+
 local function loadGarages()
   GarageCache = {}
   local rows = MySQL.query.await(
@@ -149,7 +173,7 @@ RegisterNetEvent('rp:garage:spawnVehicle', function(vehicleId)
     return
   end
 
-  if tonumber(row.stored) ~= 1 then
+  if toStoredFlag(row.stored) ~= 1 then
     notify(src, 'error', 'Garage', 'Fahrzeug ist bereits ausgeparkt.')
     return
   end

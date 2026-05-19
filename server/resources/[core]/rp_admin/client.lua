@@ -126,19 +126,23 @@ local function applyAdutyOutfit(ped, outfit)
     return
   end
 
+  local tshirt = math.max(0, math.floor(tonumber(outfit.tshirt) or 15))
   local top = math.max(0, math.floor(tonumber(outfit.top) or 15))
+  local top2 = math.max(0, math.floor(tonumber(outfit.top2) or 0))
   local pants = math.max(0, math.floor(tonumber(outfit.pants) or 14))
+  local pants2 = math.max(0, math.floor(tonumber(outfit.pants2) or 0))
   local shoes = math.max(0, math.floor(tonumber(outfit.shoes) or 34))
-  local hat = math.floor(tonumber(outfit.hat) or -1)
+  local mask = math.floor(tonumber(outfit.mask) or -1)
 
-  SetPedComponentVariation(ped, 11, top, 0, 2)
-  SetPedComponentVariation(ped, 4, pants, 0, 2)
+  SetPedComponentVariation(ped, 8, tshirt, 0, 2)
+  SetPedComponentVariation(ped, 11, top, top2, 2)
+  SetPedComponentVariation(ped, 4, pants, pants2, 2)
   SetPedComponentVariation(ped, 6, shoes, 0, 2)
 
-  if hat >= 0 then
-    SetPedPropIndex(ped, 0, hat, 0, true)
+  if mask >= 0 then
+    SetPedComponentVariation(ped, 1, mask, 0, 2)
   else
-    ClearPedProp(ped, 0)
+    SetPedComponentVariation(ped, 1, 0, 0, 2)
   end
 end
 
@@ -457,10 +461,13 @@ RegisterNetEvent('rp:admin:setAdutyState', function(payload)
     end
 
     adutyCurrentOutfit = {
+      tshirt = tonumber(payload.outfit and payload.outfit.tshirt) or 15,
       top = tonumber(payload.outfit and payload.outfit.top) or 15,
+      top2 = tonumber(payload.outfit and payload.outfit.top2) or 0,
       pants = tonumber(payload.outfit and payload.outfit.pants) or 14,
+      pants2 = tonumber(payload.outfit and payload.outfit.pants2) or 0,
       shoes = tonumber(payload.outfit and payload.outfit.shoes) or 34,
-      hat = tonumber(payload.outfit and payload.outfit.hat) or -1
+      mask = tonumber(payload.outfit and payload.outfit.mask) or -1
     }
 
     applyAdutyOutfit(ped, adutyCurrentOutfit)
