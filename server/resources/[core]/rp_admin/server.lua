@@ -154,7 +154,7 @@ local function getCommandCatalog()
       help = 'Gibt einem Spieler Geld.',
       params = {
         { name = 'id', help = 'Server-ID des Spielers' },
-        { name = 'bar/bank', help = 'Kontotyp' },
+        { name = 'bar/bank/bargeld', help = 'Kontotyp oder Inventar-Bargeld' },
         { name = 'menge', help = 'Betrag > 0' }
       },
       permission = GIVE_MONEY_PERMISSION_KEY
@@ -776,7 +776,14 @@ local function applyCommandParamOptions(commandName, params)
   local setJobCommand = trim(getCommandName(RPAdminConfig.setJobCommand, 'setjob')):lower()
   local giveWeaponCommand = trim(getCommandName(RPAdminConfig.giveWeaponCommand, 'giveweapon')):lower()
 
-  if normalizedCommand == giveMoneyCommand or normalizedCommand == setMoneyCommand then
+  if normalizedCommand == giveMoneyCommand then
+    if out[2] then
+      out[2].options = { 'bar', 'bank', 'bargeld' }
+    end
+    return out
+  end
+
+  if normalizedCommand == setMoneyCommand then
     if out[2] then
       out[2].options = { 'bar', 'bank' }
     end
@@ -1209,7 +1216,7 @@ local function bootstrapAdminData()
       ('commands.noclip', 'Noclip-Befehl', 'Darf /noclip ausführen'),
       ('commands.name', 'Nametag-Befehl', 'Darf /name ausführen'),
       ('commands.aduty', 'Admin-Duty-Befehl', 'Darf /aduty ausführen'),
-      ('commands.givemoney', 'GiveMoney-Befehl', 'Darf /givemoney [id] [bar/bank] [menge] ausführen'),
+      ('commands.givemoney', 'GiveMoney-Befehl', 'Darf /givemoney [id] [bar/bank/bargeld] [menge] ausführen'),
       ('commands.setmoney', 'SetMoney-Befehl', 'Darf /setmoney [id] [bar/bank] [stand] ausführen'),
       ('commands.giveitem', 'GiveItem-Befehl', 'Darf /giveitem [id] [item] [anzahl] ausführen'),
       ('commands.setjob', 'SetJob-Befehl', 'Darf /setjob [id] [job] [rang] ausführen'),
@@ -3813,6 +3820,15 @@ local function parseMoneyAccountType(rawValue)
   return nil, nil
 end
 
+local function parseGiveMoneyType(rawValue)
+  local value = trim(tostring(rawValue or '')):lower()
+  if value == 'bargeld' then
+    return 'inventory_cash', 'Bargeld (Inventar)'
+  end
+
+  return parseMoneyAccountType(rawValue)
+end
+
 local function parsePositiveInteger(rawValue)
   local value = math.floor(tonumber(rawValue) or -1)
   if value <= 0 then
@@ -4526,7 +4542,7 @@ end
 
 local function handleGiveMoneyCommand(source, args)
   if source <= 0 then
-    print(('[rp_admin] Nutze den Befehl /%s <id> <bar|bank> <menge> im Spiel.'):format(RPAdminConfig.giveMoneyCommand or 'givemoney'))
+    print(('[rp_admin] Nutze den Befehl /%s <id> <bar|bank|bargeld> <menge> im Spiel.'):format(RPAdminConfig.giveMoneyCommand or 'givemoney'))
     return
   end
 
@@ -4547,9 +4563,9 @@ local function handleGiveMoneyCommand(source, args)
     return
   end
 
-  local accountType, accountLabel = parseMoneyAccountType(args and args[2])
+  local accountType, accountLabel = parseGiveMoneyType(args and args[2])
   if not accountType then
-    notify(source, 'error', ('Nutzung: /%s <id> <bar|bank> <menge>'):format(RPAdminConfig.giveMoneyCommand or 'givemoney'))
+    notify(source, 'error', ('Nutzung: /%s <id> <bar|bank|bargeld> <menge>'):format(RPAdminConfig.giveMoneyCommand or 'givemoney'))
     return
   end
 
@@ -4562,6 +4578,8 @@ local function handleGiveMoneyCommand(source, args)
   local success, reason
   if accountType == 'cash' then
     success, reason = exports.rp_money:AddCash(targetSource, amount)
+  elseif accountType == 'inventory_cash' then
+    success, reason = exports.rp_inventory:AddItem(targetSource, 'bargeld', amount)
   else
     success, reason = exports.rp_money:AddBank(targetSource, amount, 'admin', 'admin_givemoney')
   end
@@ -4579,8 +4597,13 @@ local function handleGiveMoneyCommand(source, args)
     amount = amount
   })
 
-  notify(source, 'success', ('%s$ %s wurden an %s (ID %s) gegeben.'):format(amount, accountLabel, getProfileNameBySource(targetSource), targetSource))
-  notify(targetSource, 'info', ('Du hast %s$ %s erhalten.'):format(amount, accountLabel))
+  if accountType == 'inventory_cash' then
+    notify(source, 'success', ('%sx %s wurden an %s (ID %s) gegeben.'):format(amount, accountLabel, getProfileNameBySource(targetSource), targetSource))
+    notify(targetSource, 'info', ('Du hast %sx %s erhalten.'):format(amount, accountLabel))
+  else
+    notify(source, 'success', ('%s$ %s wurden an %s (ID %s) gegeben.'):format(amount, accountLabel, getProfileNameBySource(targetSource), targetSource))
+    notify(targetSource, 'info', ('Du hast %s$ %s erhalten.'):format(amount, accountLabel))
+  end
 end
 
 local function handleSetMoneyCommand(source, args)
