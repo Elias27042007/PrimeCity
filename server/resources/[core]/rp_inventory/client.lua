@@ -73,6 +73,37 @@ local function toWeaponModelFromItem(itemName)
   return value
 end
 
+local function closeInventoryUiIfOpen()
+  if not open then
+    return
+  end
+
+  open = false
+  SetNuiFocus(false, false)
+  SendNUIMessage({ action = 'close' })
+  TriggerServerEvent('rp:inventory:close')
+end
+
+local function equipWeaponWithRetry(ped, weaponHash, ammo)
+  ammo = math.max(1, math.floor(tonumber(ammo) or 1))
+
+  for _ = 1, 12 do
+    GiveWeaponToPed(ped, weaponHash, ammo, false, true)
+    SetPedAmmo(ped, weaponHash, ammo)
+    SetAmmoInClip(ped, weaponHash, math.max(1, math.min(ammo, 250)))
+    SetPedCanSwitchWeapon(ped, true)
+    SetCurrentPedWeapon(ped, weaponHash, true)
+
+    if HasPedGotWeapon(ped, weaponHash, false) then
+      return true
+    end
+
+    Wait(120)
+  end
+
+  return HasPedGotWeapon(ped, weaponHash, false)
+end
+
 local function normalizeDrops(payload)
   activeDrops = {}
   if type(payload) ~= 'table' then
@@ -129,6 +160,8 @@ RegisterNetEvent('rp:inventory:itemUsed', function(itemName, quantity)
     return
   end
 
+  closeInventoryUiIfOpen()
+
   local modelName = toWeaponModelFromItem(itemName)
   if not modelName then
     notifyLocal('error', 'Ungültiges Waffen-Item.')
@@ -142,13 +175,13 @@ RegisterNetEvent('rp:inventory:itemUsed', function(itemName, quantity)
     ammo = 250
   end
 
-  GiveWeaponToPed(ped, weaponHash, ammo, false, true)
-  SetCurrentPedWeapon(ped, weaponHash, true)
-
-  if not HasPedGotWeapon(ped, weaponHash, false) then
+  local equipped = equipWeaponWithRetry(ped, weaponHash, ammo)
+  if not equipped then
     notifyLocal('error', ('Waffenmodell konnte nicht ausgerüstet werden: %s'):format(modelName))
     return
   end
+
+  notifyLocal('success', ('Waffe ausgerüstet: %s'):format(modelName))
 end)
 
 CreateThread(function()
