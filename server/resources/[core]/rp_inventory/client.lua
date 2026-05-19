@@ -1,8 +1,49 @@
 local open = false
 local activeDrops = {}
-local weaponUseAliases = {
-  WEAPON_GAS = 'WEAPON_BZGAS',
-  WEAPON_PISTOL2 = 'WEAPON_COMBATPISTOL'
+local weaponItemModels = {
+  weapon_bat = 'WEAPON_BAT',
+  weapon_carbinerifle_mk2 = 'WEAPON_CARBINERIFLE_MK2',
+  weapon_ceramicpistol = 'WEAPON_CERAMICPISTOL',
+  weapon_combat_knife = 'WEAPON_KNIFE',
+  weapon_compactrifle = 'WEAPON_COMPACTRIFLE',
+  weapon_dagger = 'WEAPON_DAGGER',
+  weapon_doubleaction = 'WEAPON_DOUBLEACTION',
+  weapon_fireextinguisher = 'WEAPON_FIREEXTINGUISHER',
+  weapon_flashbang = 'WEAPON_FLASHBANG',
+  weapon_flashlight = 'WEAPON_FLASHLIGHT',
+  weapon_gadgetpistol = 'WEAPON_GADGETPISTOL',
+  weapon_gas = 'WEAPON_BZGAS',
+  weapon_glock19 = 'WEAPON_GLOCK19',
+  weapon_goodnightbat = 'WEAPON_GOODNIGHTBAT',
+  weapon_knuckle = 'WEAPON_KNUCKLE',
+  weapon_m45a1 = 'WEAPON_M45A1',
+  weapon_machete = 'WEAPON_MACHETE',
+  weapon_marksmanrifle_mk2 = 'WEAPON_MARKSMANRIFLE_MK2',
+  weapon_microsmg = 'WEAPON_MICROSMG',
+  weapon_navyrevolver = 'WEAPON_NAVYREVOLVER',
+  weapon_nightstick = 'WEAPON_NIGHTSTICK',
+  weapon_pistol = 'WEAPON_PISTOL',
+  weapon_pistol2 = 'WEAPON_COMBATPISTOL',
+  weapon_pistol_mk2 = 'WEAPON_PISTOL_MK2',
+  weapon_pistol_mk2_2 = 'WEAPON_PISTOL_MK2',
+  weapon_pistol_wm29 = 'WEAPON_PISTOL_WM29',
+  weapon_revolver = 'WEAPON_REVOLVER',
+  weapon_revolver_mk2 = 'WEAPON_REVOLVER_MK2',
+  weapon_sawnoffshotgun = 'WEAPON_SAWNOFFSHOTGUN',
+  weapon_smg = 'WEAPON_SMG',
+  weapon_smokegrenade = 'WEAPON_SMOKEGRENADE',
+  weapon_sniperrifle = 'WEAPON_SNIPERRIFLE',
+  weapon_specialcarbine = 'WEAPON_SPECIALCARBINE',
+  weapon_specialcarbine_mk2 = 'WEAPON_SPECIALCARBINE_MK2',
+  weapon_stungun = 'WEAPON_STUNGUN',
+  weapon_stungun_blue = 'WEAPON_STUNGUN',
+  weapon_stungun_red = 'WEAPON_STUNGUN',
+  weapon_stungun_yellow = 'WEAPON_STUNGUN',
+  weapon_switchblade = 'WEAPON_SWITCHBLADE',
+  weapon_switchblade2 = 'WEAPON_SWITCHBLADE',
+  weapon_ump45 = 'WEAPON_UMP45',
+  weapon_vector = 'WEAPON_VECTOR',
+  weapon_vintagepistol = 'WEAPON_VINTAGEPISTOL'
 }
 
 local function notifyLocal(ntype, message)
@@ -14,17 +55,22 @@ local function notifyLocal(ntype, message)
 end
 
 local function toWeaponModelFromItem(itemName)
-  local value = tostring(itemName or ''):upper():gsub('%s+', '_')
-  if value == '' then
+  local key = tostring(itemName or ''):lower():gsub('%s+', '_')
+  if key == '' then
     return nil
   end
+  local mapped = weaponItemModels[key]
+  if mapped and mapped ~= '' then
+    return mapped
+  end
+  local value = key:upper()
   if value:sub(1, 7) ~= 'WEAPON_' then
     value = 'WEAPON_' .. value
   end
   if not value:match('^WEAPON_[A-Z0-9_]+$') then
     return nil
   end
-  return weaponUseAliases[value] or value
+  return value
 end
 
 local function normalizeDrops(payload)
@@ -90,11 +136,6 @@ RegisterNetEvent('rp:inventory:itemUsed', function(itemName, quantity)
   end
 
   local weaponHash = GetHashKey(modelName)
-  if not IsWeaponValid(weaponHash) then
-    notifyLocal('error', ('Waffenmodell nicht gefunden: %s'):format(modelName))
-    return
-  end
-
   local ped = PlayerPedId()
   local ammo = math.max(1, math.floor(tonumber(quantity) or 1))
   if ammo < 30 then
@@ -103,6 +144,11 @@ RegisterNetEvent('rp:inventory:itemUsed', function(itemName, quantity)
 
   GiveWeaponToPed(ped, weaponHash, ammo, false, true)
   SetCurrentPedWeapon(ped, weaponHash, true)
+
+  if not HasPedGotWeapon(ped, weaponHash, false) then
+    notifyLocal('error', ('Waffenmodell konnte nicht ausgerüstet werden: %s'):format(modelName))
+    return
+  end
 end)
 
 CreateThread(function()
