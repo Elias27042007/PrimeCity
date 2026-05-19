@@ -104,6 +104,38 @@ local function equipWeaponWithRetry(ped, weaponHash, ammo)
   return HasPedGotWeapon(ped, weaponHash, false)
 end
 
+local function syncWeaponsFromInventory(payload)
+  local ped = PlayerPedId()
+  if ped == 0 or not DoesEntityExist(ped) then
+    return
+  end
+
+  local owned = {}
+  if type(payload) == 'table' and type(payload.items) == 'table' then
+    for i = 1, #payload.items do
+      local itemName = tostring(payload.items[i] or ''):lower()
+      if itemName ~= '' then
+        owned[itemName] = true
+      end
+    end
+  end
+
+  for itemName, modelName in pairs(weaponItemModels) do
+    local weaponHash = GetHashKey(modelName)
+    local shouldOwn = owned[itemName] == true
+    local hasWeapon = HasPedGotWeapon(ped, weaponHash, false)
+
+    if shouldOwn and not hasWeapon then
+      GiveWeaponToPed(ped, weaponHash, 250, false, false)
+      SetPedAmmo(ped, weaponHash, math.max(GetAmmoInPedWeapon(ped, weaponHash), 250))
+    elseif (not shouldOwn) and hasWeapon then
+      RemoveWeaponFromPed(ped, weaponHash)
+    end
+  end
+
+  SetPedCanSwitchWeapon(ped, true)
+end
+
 local function normalizeDrops(payload)
   activeDrops = {}
   if type(payload) ~= 'table' then
@@ -154,6 +186,10 @@ RegisterNetEvent('rp:inventory:updateDrops', function(payload)
   normalizeDrops(payload)
 end)
 
+RegisterNetEvent('rp:inventory:syncWeapons', function(payload)
+  syncWeaponsFromInventory(payload)
+end)
+
 RegisterNetEvent('rp:inventory:itemUsed', function(itemName, quantity)
   itemName = tostring(itemName or ''):lower()
   if itemName:sub(1, 7) ~= 'weapon_' then
@@ -187,11 +223,13 @@ end)
 CreateThread(function()
   Wait(3000)
   TriggerServerEvent('rp:inventory:requestDrops')
+  TriggerServerEvent('rp:inventory:requestWeaponSync')
 end)
 
 AddEventHandler('playerSpawned', function()
   Wait(1200)
   TriggerServerEvent('rp:inventory:requestDrops')
+  TriggerServerEvent('rp:inventory:requestWeaponSync')
 end)
 
 RegisterNUICallback('inventory:close', function(_, cb)

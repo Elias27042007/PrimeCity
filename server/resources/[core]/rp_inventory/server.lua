@@ -225,6 +225,37 @@ local function itemIconPath(itemName)
   return ('icons/items/%s.png'):format(tostring(itemName or 'unknown'))
 end
 
+local function collectWeaponItemsFromCache(cache)
+  local owned = {}
+  if type(cache) ~= 'table' or type(cache.items) ~= 'table' then
+    return owned
+  end
+
+  for itemName, row in pairs(cache.items) do
+    if isWeaponItem(itemName) and (tonumber(row and row.quantity) or 0) > 0 then
+      owned[#owned + 1] = tostring(itemName):lower()
+    end
+  end
+
+  table.sort(owned)
+  return owned
+end
+
+local function pushWeaponSync(source, cache)
+  source = tonumber(source) or 0
+  if source <= 0 then
+    return
+  end
+
+  if not GetPlayerName(source) then
+    return
+  end
+
+  local resolvedCache = cache or InventoryCache[source]
+  local items = collectWeaponItemsFromCache(resolvedCache)
+  TriggerClientEvent('rp:inventory:syncWeapons', source, { items = items })
+end
+
 local function serializableInventory(cache)
   local list = {}
   for _, item in pairs(cache.items) do
@@ -393,6 +424,9 @@ local function addItem(source, itemName, quantity)
   cache.items[itemName] = row
   syncItemToDb(charId, itemName, row.quantity)
   pushInventory(source)
+  if isWeaponItem(itemName) then
+    pushWeaponSync(source, cache)
+  end
   return true
 end
 
@@ -420,6 +454,9 @@ local function removeItem(source, itemName, quantity)
   end
 
   pushInventory(source)
+  if isWeaponItem(itemName) then
+    pushWeaponSync(source, cache)
+  end
   return true
 end
 
@@ -513,7 +550,9 @@ AddEventHandler('rp:inventory:loadCharacterInventory', function(source, characte
   local cache, reason = loadCharacterInventoryIntoCache(source, true)
   if not cache then
     print(('[rp_inventory] loadCharacterInventory fehlgeschlagen für %s: %s'):format(tostring(source), tostring(reason)))
+    return
   end
+  pushWeaponSync(source, cache)
 end)
 
 RegisterNetEvent('rp:inventory:requestOpen', function()
@@ -533,7 +572,19 @@ RegisterNetEvent('rp:inventory:requestOpen', function()
 
   OpenSessions[src] = true
   TriggerClientEvent('rp:inventory:openUI', src, serializableInventory(cache))
+  pushWeaponSync(src, cache)
   pushDrops(src)
+end)
+
+RegisterNetEvent('rp:inventory:requestWeaponSync', function()
+  local src = source
+  local cache = InventoryCache[src]
+  if not cache then
+    cache = select(1, loadCharacterInventoryIntoCache(src, true))
+  end
+  if cache then
+    pushWeaponSync(src, cache)
+  end
 end)
 
 RegisterNetEvent('rp:inventory:requestDrops', function()
