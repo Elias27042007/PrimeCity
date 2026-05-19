@@ -1156,31 +1156,31 @@ function renderRights() {
         <p class="muted">Diese Werte werden für <strong>${escapeHtml(selectedRole?.label || '-')}</strong> bei <code>/aduty</code> verwendet.</p>
         <div class="form-grid" style="grid-template-columns: repeat(2, minmax(160px, 1fr)); gap: 10px;">
           <label>
-            TShirt 1 (8)
+            TShirt 1
             <input id="rightsDutyTshirt" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.tshirt)}" />
           </label>
           <label>
-            Oberteil (11)
+            Oberteil
             <input id="rightsDutyTop" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.top)}" />
           </label>
           <label>
-            Oberteil 2 (11 Texture)
+            Oberteil 2
             <input id="rightsDutyTop2" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.top2)}" />
           </label>
           <label>
-            Hose (4)
+            Hose
             <input id="rightsDutyPants" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.pants)}" />
           </label>
           <label>
-            Hose 2 (4 Texture)
+            Hose 2
             <input id="rightsDutyPants2" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.pants2)}" />
           </label>
           <label>
-            Schuhe (6)
+            Schuhe
             <input id="rightsDutyShoes" type="number" min="0" max="500" value="${escapeHtml(selectedDutyOutfit.shoes)}" />
           </label>
           <label>
-            Maske (1, -1 = aus)
+            Maske -1 = aus
             <input id="rightsDutyMask" type="number" min="-1" max="500" value="${escapeHtml(selectedDutyOutfit.mask)}" />
           </label>
         </div>
