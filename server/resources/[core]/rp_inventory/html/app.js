@@ -116,7 +116,7 @@ const render = () => {
     actions.appendChild(qtyInput);
 
     const isWeaponItem = String(item.itemName || '').toLowerCase().startsWith('weapon_');
-    if (item.usable || isWeaponItem) {
+    if (item.usable && !isWeaponItem) {
       const useBtn = document.createElement('button');
       useBtn.textContent = 'Benutzen';
       useBtn.addEventListener('click', async () => {
