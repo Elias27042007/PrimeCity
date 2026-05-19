@@ -78,14 +78,15 @@ local function updateCreatorCamera()
   end
 
   local cfg = RPSkinConfig.camera or {}
-  local baseDistance = tonumber(cfg.distance) or 9.0
+  local baseDistance = tonumber(cfg.distance) or 2.7
   if type(creatorCameraDistance) ~= 'number' then
     creatorCameraDistance = baseDistance
   end
+
   local distance = creatorCameraDistance
-  local height = tonumber(cfg.height) or 1.05
-  local targetHeight = tonumber(cfg.targetHeight) or -0.2
-  local fov = tonumber(cfg.fov) or 58.0
+  local height = tonumber(cfg.height) or 1.15
+  local targetHeight = tonumber(cfg.targetHeight) or -0.25
+  local fov = tonumber(cfg.fov) or 76.0
 
   local heading = (creatorAnchor and creatorAnchor.heading) or GetEntityHeading(ped)
   local headingRad = math.rad(heading)
@@ -115,9 +116,9 @@ end
 
 local function adjustCreatorCameraDistance(direction)
   local cfg = RPSkinConfig.camera or {}
-  local baseDistance = tonumber(cfg.distance) or 9.0
+  local baseDistance = tonumber(cfg.distance) or 2.7
   local zoomStep = tonumber(cfg.zoomStep) or 0.3
-  local zoomMin = tonumber(cfg.minDistance) or 1.8
+  local zoomMin = tonumber(cfg.minDistance) or 1.2
   local zoomMax = tonumber(cfg.maxDistance) or 9.5
 
   if type(creatorCameraDistance) ~= 'number' then
@@ -185,22 +186,21 @@ local function ensureCreatorViewLockThread()
 
   CreateThread(function()
     while creating do
-      -- Keep the creator view stable and prevent camera mode/position switches.
       InvalidateIdleCam()
       InvalidateVehicleIdleCam()
       enforceCreatorAnchor()
       updateCreatorCamera()
       SetFollowPedCamViewMode(2)
       SetFollowVehicleCamViewMode(2)
-      DisableControlAction(0, 80, true)   -- Next camera
-      DisableControlAction(0, 26, true)   -- Look behind
-      DisableControlAction(0, 0, true)    -- Look left/right
-      DisableControlAction(0, 1, true)    -- Look up/down
-      DisableControlAction(0, 2, true)    -- Look up/down (alt)
-      DisableControlAction(0, 24, true)   -- Attack
-      DisableControlAction(0, 25, true)   -- Aim
-      DisableControlAction(0, 241, true)  -- Mouse wheel up
-      DisableControlAction(0, 242, true)  -- Mouse wheel down
+      DisableControlAction(0, 80, true)
+      DisableControlAction(0, 26, true)
+      DisableControlAction(0, 0, true)
+      DisableControlAction(0, 1, true)
+      DisableControlAction(0, 2, true)
+      DisableControlAction(0, 24, true)
+      DisableControlAction(0, 25, true)
+      DisableControlAction(0, 241, true)
+      DisableControlAction(0, 242, true)
 
       Wait(0)
     end
@@ -217,6 +217,8 @@ local function getSkinDefaults(sex)
     components = {
       tshirt = 15,
       tshirtTexture = 0,
+      arms = 15,
+      armsTexture = 0,
       torso = 15,
       torsoTexture = 0,
       pants = 21,
@@ -240,8 +242,19 @@ local function getSkinDefaults(sex)
       beard = -1,
       beardOpacity = 100,
       beardColor = 0,
+      eyebrows = -1,
+      eyebrowsOpacity = 100,
+      eyebrowsColor = 0,
       hairColor = 0,
       hairHighlight = 0
+    },
+    features = {
+      faceShape = 0,
+      eyes = 0,
+      eyeColor = 0,
+      bodyShape = 0,
+      eyebrows = -1,
+      eyebrowsColor = 0
     }
   }
 end
@@ -272,26 +285,32 @@ local function getHairColorMax()
   return 63
 end
 
-local function getBeardStyleMax()
+local function getOverlayStyleMax(overlayIndex, fallback)
   if GetNumHeadOverlayValues then
-    local nativeMax = math.max((GetNumHeadOverlayValues(1) or 0) - 1, -1)
-    if nativeMax > 0 then
+    local nativeMax = math.max((GetNumHeadOverlayValues(overlayIndex) or 0) - 1, -1)
+    if nativeMax >= 0 then
       return nativeMax
     end
   end
 
-  local configMax = tonumber((((RPSkinConfig or {}).overlaySlots or {}).beard or {}).max)
-  if configMax and configMax > 0 then
-    return math.floor(configMax)
-  end
+  return tonumber(fallback) or 30
+end
 
-  return 28
+local function getBeardStyleMax()
+  local configMax = tonumber((((RPSkinConfig or {}).overlaySlots or {}).beard or {}).max)
+  return getOverlayStyleMax(1, configMax or 28)
+end
+
+local function getEyebrowStyleMax()
+  local configMax = tonumber((((RPSkinConfig or {}).overlaySlots or {}).eyebrows or {}).max)
+  return getOverlayStyleMax(2, configMax or 33)
 end
 
 local function buildRangeData(skin)
   local ped = PlayerPedId()
   local componentSlots = RPSkinConfig.componentSlots or {}
   local propSlots = RPSkinConfig.propSlots or {}
+  local featureSlots = RPSkinConfig.featureSlots or {}
 
   local ranges = {
     components = {},
@@ -299,8 +318,12 @@ local function buildRangeData(skin)
     overlays = {
       beard = { min = -1, max = getBeardStyleMax() },
       beardOpacity = { min = 0, max = 100 },
-      beardColor = { min = 0, max = getHairColorMax() }
-    }
+      beardColor = { min = 0, max = getHairColorMax() },
+      eyebrows = { min = -1, max = getEyebrowStyleMax() },
+      eyebrowsOpacity = { min = 0, max = 100 },
+      eyebrowsColor = { min = 0, max = getHairColorMax() }
+    },
+    features = {}
   }
 
   for key, slot in pairs(componentSlots) do
@@ -327,6 +350,22 @@ local function buildRangeData(skin)
     end
   end
 
+  for key, slot in pairs(featureSlots) do
+    local minValue = tonumber(slot.min) or -100
+    local maxValue = tonumber(slot.max) or 100
+
+    if key == 'eyebrows' then
+      maxValue = getEyebrowStyleMax()
+    elseif key == 'eyebrowsColor' then
+      maxValue = getHairColorMax()
+    end
+
+    ranges.features[key] = {
+      min = minValue,
+      max = maxValue
+    }
+  end
+
   return ranges
 end
 
@@ -338,11 +377,13 @@ local function normalizeSkinData(payload)
     sex = defaults.sex,
     components = {},
     props = {},
-    overlays = {}
+    overlays = {},
+    features = {}
   }
 
   local componentSlots = RPSkinConfig.componentSlots or {}
   local propSlots = RPSkinConfig.propSlots or {}
+  local featureSlots = RPSkinConfig.featureSlots or {}
 
   for key, slot in pairs(componentSlots) do
     out.components[key] = tonumber((incoming.components or {})[key]) or slot.default or defaults.components[key] or 0
@@ -361,8 +402,34 @@ local function normalizeSkinData(payload)
   out.overlays.beard = tonumber((incoming.overlays or {}).beard) or defaults.overlays.beard
   out.overlays.beardOpacity = tonumber((incoming.overlays or {}).beardOpacity) or defaults.overlays.beardOpacity
   out.overlays.beardColor = tonumber((incoming.overlays or {}).beardColor) or defaults.overlays.beardColor
-  out.overlays.hairColor = tonumber((incoming.components or {}).hairTexture) or defaults.overlays.hairColor
-  out.overlays.hairHighlight = tonumber((incoming.components or {}).hairTexture) or defaults.overlays.hairHighlight
+  out.overlays.eyebrows = tonumber((incoming.overlays or {}).eyebrows) or tonumber((incoming.features or {}).eyebrows) or defaults.overlays.eyebrows
+  out.overlays.eyebrowsOpacity = tonumber((incoming.overlays or {}).eyebrowsOpacity) or defaults.overlays.eyebrowsOpacity
+  out.overlays.eyebrowsColor = tonumber((incoming.overlays or {}).eyebrowsColor) or tonumber((incoming.features or {}).eyebrowsColor) or defaults.overlays.eyebrowsColor
+
+  local incomingHairColor = tonumber((incoming.overlays or {}).hairColor)
+  local incomingHairHighlight = tonumber((incoming.overlays or {}).hairHighlight)
+  local hairTone = tonumber((incoming.components or {}).hairTexture)
+
+  out.overlays.hairColor = incomingHairColor or hairTone or defaults.overlays.hairColor
+  out.overlays.hairHighlight = incomingHairHighlight or hairTone or defaults.overlays.hairHighlight
+
+  for key, slot in pairs(featureSlots) do
+    local defaultValue = tonumber(slot.default)
+    if defaultValue == nil then
+      defaultValue = 0
+    end
+
+    local incomingValue = tonumber((incoming.features or {})[key])
+    if incomingValue == nil then
+      if key == 'eyebrows' then
+        incomingValue = tonumber((incoming.overlays or {}).eyebrows)
+      elseif key == 'eyebrowsColor' then
+        incomingValue = tonumber((incoming.overlays or {}).eyebrowsColor)
+      end
+    end
+
+    out.features[key] = incomingValue or defaultValue
+  end
 
   out.sex = (incoming.sex == 'f') and 'f' or 'm'
 
@@ -419,6 +486,7 @@ local function applySkinData(payload)
     beardOpacityRaw = 100
   end
   local beardOpacity = clampInt(beardOpacityRaw or 100, 0, 100) / 100.0
+
   local hairColorMax = getHairColorMax()
   local beardColor = clampInt(skin.overlays.beardColor, 0, hairColorMax)
   local hairTone = clampInt(skin.components.hairTexture or 0, 0, hairColorMax)
@@ -432,13 +500,50 @@ local function applySkinData(payload)
     SetPedHeadOverlayColor(ped, 1, 1, beardColor, beardColor)
   end
 
+  local eyebrowMax = getEyebrowStyleMax()
+  local eyebrowStyle = clampInt(skin.features.eyebrows or skin.overlays.eyebrows or -1, -1, eyebrowMax)
+  local eyebrowColor = clampInt(skin.features.eyebrowsColor or skin.overlays.eyebrowsColor or 0, 0, hairColorMax)
+
+  if eyebrowStyle < 0 then
+    SetPedHeadOverlay(ped, 2, 255, 0.0)
+  else
+    SetPedHeadOverlay(ped, 2, eyebrowStyle, 1.0)
+    SetPedHeadOverlayColor(ped, 2, 1, eyebrowColor, eyebrowColor)
+  end
+
+  local featureSlots = RPSkinConfig.featureSlots or {}
+  for key, slot in pairs(featureSlots) do
+    local value = tonumber(skin.features[key])
+    local minValue = tonumber(slot.min) or -100
+    local maxValue = tonumber(slot.max) or 100
+    local defaultValue = tonumber(slot.default)
+    if defaultValue == nil then
+      defaultValue = minValue
+    end
+
+    value = clampInt(value or defaultValue, minValue, maxValue)
+    skin.features[key] = value
+
+    if slot.type == 'faceFeature' then
+      local normalized = value / 100.0
+      SetPedFaceFeature(ped, tonumber(slot.index) or 0, normalized)
+    elseif slot.type == 'eyeColor' then
+      SetPedEyeColor(ped, value)
+    end
+  end
+
   SetPedHairColor(ped, hairColor, hairHighlight)
 
   skin.overlays.beard = beard
   skin.overlays.beardOpacity = clampInt(beardOpacityRaw or 100, 0, 100)
   skin.overlays.beardColor = beardColor
+  skin.overlays.eyebrows = eyebrowStyle
+  skin.overlays.eyebrowsOpacity = 100
+  skin.overlays.eyebrowsColor = eyebrowColor
   skin.overlays.hairColor = hairColor
   skin.overlays.hairHighlight = hairHighlight
+  skin.features.eyebrows = eyebrowStyle
+  skin.features.eyebrowsColor = eyebrowColor
 
   return skin
 end
@@ -449,7 +554,8 @@ local function captureCurrentSkinData(sexFallback)
     sex = (sexFallback == 'f') and 'f' or 'm',
     components = {},
     props = {},
-    overlays = {}
+    overlays = {},
+    features = {}
   }
 
   local componentSlots = RPSkinConfig.componentSlots or {}
@@ -499,11 +605,34 @@ local function captureCurrentSkinData(sexFallback)
     end
   end
 
+  local eyebrowsValue = -1
+  if GetPedHeadOverlayValue then
+    local overlay = tonumber(GetPedHeadOverlayValue(ped, 2))
+    if overlay ~= nil and overlay >= 0 and overlay < 255 then
+      eyebrowsValue = overlay
+    end
+  end
+
+  local eyeColor = 0
+  if GetPedEyeColor then
+    eyeColor = tonumber(GetPedEyeColor(ped)) or 0
+  end
+
   captured.overlays.beard = beardValue
   captured.overlays.beardOpacity = 100
   captured.overlays.beardColor = hairColor
+  captured.overlays.eyebrows = eyebrowsValue
+  captured.overlays.eyebrowsOpacity = 100
+  captured.overlays.eyebrowsColor = hairColor
   captured.overlays.hairColor = clampInt(captured.components.hairTexture or 0, 0, getHairColorMax())
   captured.overlays.hairHighlight = captured.overlays.hairColor
+
+  captured.features.faceShape = 0
+  captured.features.eyes = 0
+  captured.features.eyeColor = eyeColor
+  captured.features.bodyShape = 0
+  captured.features.eyebrows = eyebrowsValue
+  captured.features.eyebrowsColor = hairColor
 
   return captured
 end
@@ -539,13 +668,14 @@ local function openCreator(defaults)
     sex = defaults and defaults.sex or 'm',
     components = defaults and defaults.components or {},
     props = defaults and defaults.props or {},
-    overlays = defaults and defaults.overlays or {}
+    overlays = defaults and defaults.overlays or {},
+    features = defaults and defaults.features or {}
   })
 
   currentSex = initial.sex
   currentMode = tostring(defaults and defaults.mode or 'creator')
   creatorCameraYawOffset = 0.0
-  creatorCameraDistance = tonumber((RPSkinConfig.camera or {}).distance) or 9.0
+  creatorCameraDistance = tonumber((RPSkinConfig.camera or {}).distance) or 2.7
 
   if defaults and defaults.model and defaults.model ~= '' then
     loadModel(defaults.model)
@@ -587,14 +717,19 @@ RegisterNetEvent('rp:skin:openCurrent', function(defaults)
     model = payload.model,
     components = liveSkin.components,
     props = liveSkin.props,
-    overlays = liveSkin.overlays
+    overlays = liveSkin.overlays,
+    features = liveSkin.features
   }
 
   if type(payload.overlays) == 'table' then
     for key, value in pairs(payload.overlays) do
-      if liveSkin.overlays[key] == nil then
-        finalPayload.overlays[key] = value
-      end
+      finalPayload.overlays[key] = value
+    end
+  end
+
+  if type(payload.features) == 'table' then
+    for key, value in pairs(payload.features) do
+      finalPayload.features[key] = value
     end
   end
 
@@ -644,7 +779,8 @@ RegisterNUICallback('previewSkin', function(data, cb)
       sex = currentSex,
       components = data and data.components or {},
       props = data and data.props or {},
-      overlays = data and data.overlays or {}
+      overlays = data and data.overlays or {},
+      features = data and data.features or {}
     }
   })
 
@@ -701,7 +837,8 @@ RegisterNUICallback('saveSkin', function(data, cb)
       sex = (data and data.sex == 'f') and 'f' or 'm',
       components = data and data.components or {},
       props = data and data.props or {},
-      overlays = data and data.overlays or {}
+      overlays = data and data.overlays or {},
+      features = data and data.features or {}
     }
   })
 

@@ -3311,6 +3311,7 @@ local function getPlayerStoredSkinBySource(src)
   local components = {}
   local props = {}
   local overlays = {}
+  local features = {}
 
   if type(decoded.components) == 'table' then
     components = decoded.components
@@ -3321,12 +3322,16 @@ local function getPlayerStoredSkinBySource(src)
   if type(decoded.overlays) == 'table' then
     overlays = decoded.overlays
   end
+  if type(decoded.features) == 'table' then
+    features = decoded.features
+  end
 
   return {
     model = tostring(row.model or ''),
     components = components,
     props = props,
-    overlays = overlays
+    overlays = overlays,
+    features = features
   }
 end
 
@@ -4974,7 +4979,8 @@ RegisterCommand(RPAdminConfig.skinCommand or 'skin', function(source, args)
     model = storedSkin and storedSkin.model or nil,
     components = (storedSkin and storedSkin.components) or {},
     props = (storedSkin and storedSkin.props) or {},
-    overlays = (storedSkin and storedSkin.overlays) or {}
+    overlays = (storedSkin and storedSkin.overlays) or {},
+    features = (storedSkin and storedSkin.features) or {}
   }
 
   TriggerClientEvent('rp:skin:openCurrent', targetSource, creatorPayload)

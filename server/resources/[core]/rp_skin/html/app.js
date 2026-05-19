@@ -5,6 +5,8 @@ const sexEl = document.getElementById('sex');
 const saveBtn = document.getElementById('saveBtn');
 const stateEl = document.getElementById('state');
 
+const tabButtons = Array.from(document.querySelectorAll('.tab-btn[data-tab]'));
+const tabPanels = Array.from(document.querySelectorAll('.tab-panel[data-panel]'));
 const numericInputs = Array.from(document.querySelectorAll('input[type="number"][data-path]'));
 const steppers = Array.from(document.querySelectorAll('.stepper[data-path]'));
 
@@ -13,6 +15,8 @@ const defaultSkin = {
   components: {
     tshirt: 15,
     tshirtTexture: 0,
+    arms: 15,
+    armsTexture: 0,
     torso: 15,
     torsoTexture: 0,
     pants: 21,
@@ -35,17 +39,30 @@ const defaultSkin = {
   overlays: {
     beard: -1,
     beardOpacity: 100,
-    beardColor: 0
+    beardColor: 0,
+    eyebrows: -1,
+    eyebrowsOpacity: 100,
+    eyebrowsColor: 0
+  },
+  features: {
+    faceShape: 0,
+    eyes: 0,
+    eyeColor: 0,
+    bodyShape: 0,
+    eyebrows: -1,
+    eyebrowsColor: 0
   }
 };
 
 const state = {
   mode: 'creator',
+  activeTab: 'clothing',
   skin: JSON.parse(JSON.stringify(defaultSkin)),
   ranges: {
     components: {},
     props: {},
-    overlays: {}
+    overlays: {},
+    features: {}
   }
 };
 
@@ -124,8 +141,21 @@ const uiData = () => ({
   sex: state.skin.sex,
   components: state.skin.components,
   props: state.skin.props,
-  overlays: state.skin.overlays
+  overlays: state.skin.overlays,
+  features: state.skin.features
 });
+
+const renderTabs = () => {
+  tabButtons.forEach((button) => {
+    const tab = button.dataset.tab;
+    button.classList.toggle('active', tab === state.activeTab);
+  });
+
+  tabPanels.forEach((panel) => {
+    const tab = panel.dataset.panel;
+    panel.classList.toggle('active', tab === state.activeTab);
+  });
+};
 
 const renderFields = () => {
   sexEl.value = state.skin.sex === 'f' ? 'f' : 'm';
@@ -173,6 +203,13 @@ sexEl.addEventListener('change', () => {
   schedulePreview();
 });
 
+tabButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    state.activeTab = button.dataset.tab === 'features' ? 'features' : 'clothing';
+    renderTabs();
+  });
+});
+
 numericInputs.forEach((input) => {
   input.addEventListener('change', () => {
     setNumericField(input.dataset.path, input.value, true);
@@ -189,6 +226,7 @@ steppers.forEach((stepper) => {
     if (!button) {
       return;
     }
+
     event.preventDefault();
     const path = stepper.dataset.path;
     const delta = Number(button.dataset.dir || 0);
@@ -276,6 +314,7 @@ window.addEventListener('message', (event) => {
     app.classList.remove('hidden');
 
     state.mode = String(data?.mode || 'creator');
+    state.activeTab = 'clothing';
     titleEl.textContent = data?.title || 'Character Creator';
     subtitleEl.textContent = data?.subtitle || 'Grundauswahl für deinen Startlook.';
 
@@ -285,13 +324,16 @@ window.addEventListener('message', (event) => {
     state.ranges = {
       components: {},
       props: {},
-      overlays: {}
+      overlays: {},
+      features: {}
     };
+
     if (data?.ranges && typeof data.ranges === 'object') {
       state.ranges = deepMerge(state.ranges, data.ranges);
     }
 
     stateEl.textContent = '';
+    renderTabs();
     renderFields();
   }
 

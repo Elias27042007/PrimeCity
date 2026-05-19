@@ -280,6 +280,10 @@ local function spawnCharacter(source, character, isNew)
       skin = {
         sex = 'm',
         components = {
+          tshirt = 15,
+          tshirtTexture = 0,
+          arms = 15,
+          armsTexture = 0,
           torso = 15,
           pants = 21,
           shoes = 34,
@@ -303,8 +307,19 @@ local function spawnCharacter(source, character, isNew)
           beard = -1,
           beardOpacity = 100,
           beardColor = 0,
+          eyebrows = -1,
+          eyebrowsOpacity = 100,
+          eyebrowsColor = 0,
           hairColor = 0,
           hairHighlight = 0
+        },
+        features = {
+          faceShape = 0,
+          eyes = 0,
+          eyeColor = 0,
+          bodyShape = 0,
+          eyebrows = -1,
+          eyebrowsColor = 0
         }
       }
     })

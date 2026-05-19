@@ -12,197 +12,281 @@
       <h1 id="title">Character Creator</h1>
       <p id="subtitle" class="subtitle">Grundauswahl für deinen Startlook.</p>
 
-      <div class="field full">
-        <label for="sex">Geschlecht</label>
-        <select id="sex">
-          <option value="m">Männlich</option>
-          <option value="f">Weiblich</option>
-        </select>
+      <div class="top-nav">
+        <button class="tab-btn active" data-tab="clothing" type="button">Kleidung</button>
+        <div class="nav-center" aria-hidden="true">✦</div>
+        <button class="tab-btn" data-tab="features" type="button">Merkmale</button>
       </div>
 
-      <div class="grid">
-        <div class="field">
-          <label>TShirt</label>
-          <div class="stepper" data-path="components.tshirt">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.tshirt" />
-            <button class="arrow" data-dir="1">▶</button>
-          </div>
-        </div>
-        <div class="field">
-          <label>TShirt 2</label>
-          <div class="stepper" data-path="components.tshirtTexture">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.tshirtTexture" />
-            <button class="arrow" data-dir="1">▶</button>
-          </div>
+      <div class="tab-panel active" data-panel="clothing">
+        <div class="field full">
+          <label for="sex">Geschlecht</label>
+          <select id="sex">
+            <option value="m">Männlich</option>
+            <option value="f">Weiblich</option>
+          </select>
         </div>
 
-        <div class="field">
-          <label>Oberteil</label>
-          <div class="stepper" data-path="components.torso">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.torso" />
-            <button class="arrow" data-dir="1">▶</button>
+        <div class="grid">
+          <div class="field">
+            <label>TShirt</label>
+            <div class="stepper" data-path="components.tshirt">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.tshirt" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>Oberteil 2</label>
-          <div class="stepper" data-path="components.torsoTexture">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.torsoTexture" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>TShirt 2</label>
+            <div class="stepper" data-path="components.tshirtTexture">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.tshirtTexture" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label>Hose</label>
-          <div class="stepper" data-path="components.pants">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.pants" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Arme</label>
+            <div class="stepper" data-path="components.arms">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.arms" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>Hose 2</label>
-          <div class="stepper" data-path="components.pantsTexture">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.pantsTexture" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Arme 2</label>
+            <div class="stepper" data-path="components.armsTexture">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.armsTexture" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label>Schuhe</label>
-          <div class="stepper" data-path="components.shoes">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.shoes" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Oberteil</label>
+            <div class="stepper" data-path="components.torso">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.torso" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>Schuhe 2</label>
-          <div class="stepper" data-path="components.shoesTexture">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.shoesTexture" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Oberteil 2</label>
+            <div class="stepper" data-path="components.torsoTexture">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.torsoTexture" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label>Haare</label>
-          <div class="stepper" data-path="components.hair">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.hair" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Hose</label>
+            <div class="stepper" data-path="components.pants">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.pants" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>Haare 2</label>
-          <div class="stepper" data-path="components.hairTexture">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.hairTexture" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Hose 2</label>
+            <div class="stepper" data-path="components.pantsTexture">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.pantsTexture" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label>Bart</label>
-          <div class="stepper" data-path="overlays.beard">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="overlays.beard" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Schuhe</label>
+            <div class="stepper" data-path="components.shoes">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.shoes" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>Bart Sichtbarkeit</label>
-          <div class="stepper" data-path="overlays.beardOpacity">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="overlays.beardOpacity" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Schuhe 2</label>
+            <div class="stepper" data-path="components.shoesTexture">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.shoesTexture" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label>Bartfarbe</label>
-          <div class="stepper" data-path="overlays.beardColor">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="overlays.beardColor" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Haare</label>
+            <div class="stepper" data-path="components.hair">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.hair" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
+          <div class="field">
+            <label>Haare 2</label>
+            <div class="stepper" data-path="components.hairTexture">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.hairTexture" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
+          </div>
 
-        <div class="field">
-          <label>Maske</label>
-          <div class="stepper" data-path="components.mask">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.mask" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Maske</label>
+            <div class="stepper" data-path="components.mask">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.mask" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>Maske 2</label>
-          <div class="stepper" data-path="components.maskTexture">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.maskTexture" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Maske 2</label>
+            <div class="stepper" data-path="components.maskTexture">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.maskTexture" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label>Sonnenbrille</label>
-          <div class="stepper" data-path="props.glasses">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="props.glasses" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Sonnenbrille</label>
+            <div class="stepper" data-path="props.glasses">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="props.glasses" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>Sonnenbrille 2</label>
-          <div class="stepper" data-path="props.glassesTexture">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="props.glassesTexture" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Sonnenbrille 2</label>
+            <div class="stepper" data-path="props.glassesTexture">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="props.glassesTexture" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label>Hut</label>
-          <div class="stepper" data-path="props.hat">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="props.hat" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Hut</label>
+            <div class="stepper" data-path="props.hat">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="props.hat" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
-        <div class="field">
-          <label>Hut 2</label>
-          <div class="stepper" data-path="props.hatTexture">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="props.hatTexture" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Hut 2</label>
+            <div class="stepper" data-path="props.hatTexture">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="props.hatTexture" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
-        </div>
 
-        <div class="field">
-          <label>Kette</label>
-          <div class="stepper" data-path="components.chain">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.chain" />
-            <button class="arrow" data-dir="1">▶</button>
+          <div class="field">
+            <label>Kette</label>
+            <div class="stepper" data-path="components.chain">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.chain" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Kette 2</label>
+            <div class="stepper" data-path="components.chainTexture">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="components.chainTexture" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
         </div>
-        <div class="field">
-          <label>Kette 2</label>
-          <div class="stepper" data-path="components.chainTexture">
-            <button class="arrow" data-dir="-1">◀</button>
-            <input type="number" data-path="components.chainTexture" />
-            <button class="arrow" data-dir="1">▶</button>
+      </div>
+
+      <div class="tab-panel" data-panel="features">
+        <div class="grid">
+          <div class="field">
+            <label>Gesichtsform</label>
+            <div class="stepper" data-path="features.faceShape">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="features.faceShape" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Körperform</label>
+            <div class="stepper" data-path="features.bodyShape">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="features.bodyShape" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Augen</label>
+            <div class="stepper" data-path="features.eyes">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="features.eyes" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Augenfarbe</label>
+            <div class="stepper" data-path="features.eyeColor">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="features.eyeColor" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Augenbrauen</label>
+            <div class="stepper" data-path="features.eyebrows">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="features.eyebrows" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Augenbrauenfarbe</label>
+            <div class="stepper" data-path="features.eyebrowsColor">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="features.eyebrowsColor" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Bart</label>
+            <div class="stepper" data-path="overlays.beard">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="overlays.beard" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Bart Sichtbarkeit</label>
+            <div class="stepper" data-path="overlays.beardOpacity">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="overlays.beardOpacity" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Bartfarbe</label>
+            <div class="stepper" data-path="overlays.beardColor">
+              <button class="arrow" data-dir="-1">◀</button>
+              <input type="number" data-path="overlays.beardColor" />
+              <button class="arrow" data-dir="1">▶</button>
+            </div>
           </div>
         </div>
       </div>
 
       <button id="saveBtn">Skin speichern</button>
-      <p class="hint">Der Charakter bleibt zur Kamera ausgerichtet.</p>
+      <p class="hint">Links/Rechts drehen, Hoch/Runter zoomen, ESC abbrechen.</p>
       <div id="state"></div>
     </div>
   </div>

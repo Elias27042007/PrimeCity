@@ -34,12 +34,14 @@ RegisterNetEvent('rp:skin:save', function(payload)
   local components = type(skin.components) == 'table' and skin.components or {}
   local props = type(skin.props) == 'table' and skin.props or {}
   local overlays = type(skin.overlays) == 'table' and skin.overlays or {}
+  local features = type(skin.features) == 'table' and skin.features or {}
 
   local clean = {
     sex = (skin.sex == 'f') and 'f' or 'm',
     components = {},
     props = {},
-    overlays = {}
+    overlays = {},
+    features = {}
   }
 
   local componentSlots = RPSkinConfig and RPSkinConfig.componentSlots or {}
@@ -70,8 +72,22 @@ RegisterNetEvent('rp:skin:save', function(payload)
   clean.overlays.beard = sanitizeInt(overlays.beard, -1, 255)
   clean.overlays.beardOpacity = sanitizeInt(overlays.beardOpacity, 0, 100)
   clean.overlays.beardColor = sanitizeInt(overlays.beardColor, 0, 63)
+  clean.overlays.eyebrows = sanitizeInt(overlays.eyebrows, -1, 255)
+  clean.overlays.eyebrowsOpacity = sanitizeInt(overlays.eyebrowsOpacity, 0, 100)
+  clean.overlays.eyebrowsColor = sanitizeInt(overlays.eyebrowsColor, 0, 63)
   clean.overlays.hairColor = sanitizeInt(overlays.hairColor, 0, 63)
   clean.overlays.hairHighlight = sanitizeInt(overlays.hairHighlight, 0, 63)
+
+  local featureSlots = RPSkinConfig and RPSkinConfig.featureSlots or {}
+  for key, slot in pairs(featureSlots) do
+    local minValue = tonumber(slot.min) or -100
+    local maxValue = tonumber(slot.max) or 100
+    local defaultValue = tonumber(slot.default)
+    if defaultValue == nil then
+      defaultValue = minValue
+    end
+    clean.features[key] = sanitizeInt(features[key], defaultValue, maxValue)
+  end
 
   local success, reason = exports.rp_core:FinalizeCharacterSetup(src, {
     model = payload.model,

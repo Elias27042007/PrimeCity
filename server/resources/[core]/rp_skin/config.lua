@@ -4,6 +4,7 @@ RPSkinConfig = {
 
   componentSlots = {
     tshirt = { component = 8, textureKey = 'tshirtTexture', default = 15 },
+    arms = { component = 3, textureKey = 'armsTexture', default = 15 },
     torso = { component = 11, textureKey = 'torsoTexture', default = 15 },
     pants = { component = 4, textureKey = 'pantsTexture', default = 21 },
     shoes = { component = 6, textureKey = 'shoesTexture', default = 34 },
@@ -18,12 +19,22 @@ RPSkinConfig = {
   },
 
   overlaySlots = {
-    beard = { overlay = 1, default = -1, max = 28, colorType = 1, colorKey = 'beardColor', opacityKey = 'beardOpacity' }
+    beard = { overlay = 1, default = -1, max = 28, colorType = 1, colorKey = 'beardColor', opacityKey = 'beardOpacity' },
+    eyebrows = { overlay = 2, default = -1, max = 33, colorType = 1, colorKey = 'eyebrowsColor', opacityKey = 'eyebrowsOpacity' }
   },
 
   colorSlots = {
     hairColor = { default = 0, max = 63 },
     hairHighlight = { default = 0, max = 63 }
+  },
+
+  featureSlots = {
+    faceShape = { default = 0, min = -100, max = 100, type = 'faceFeature', index = 0 },
+    eyes = { default = 0, min = -100, max = 100, type = 'faceFeature', index = 11 },
+    eyeColor = { default = 0, min = 0, max = 31, type = 'eyeColor' },
+    bodyShape = { default = 0, min = -100, max = 100, type = 'faceFeature', index = 19 },
+    eyebrows = { default = -1, min = -1, max = 33, type = 'overlay', index = 2, colorType = 1 },
+    eyebrowsColor = { default = 0, min = 0, max = 63, type = 'overlayColor', overlay = 2, colorType = 1 }
   },
 
   camera = {
