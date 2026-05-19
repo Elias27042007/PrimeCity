@@ -2,6 +2,7 @@ local visible = true
 local editing = false
 local layoutApplied = false
 local hudSuggestionActive = false
+local hiddenByPauseMenu = false
 local playerData = {
   fullName = 'Unbekannt',
   cash = 0,
@@ -28,6 +29,11 @@ local function setHudEditMode(state)
   })
 end
 
+local function applyHudVisibility()
+  local shouldShow = visible and (not hiddenByPauseMenu)
+  SendNUIMessage({ action = shouldShow and 'show' or 'hide' })
+end
+
 local function registerHudSuggestion()
   if hudSuggestionActive then
     return
@@ -48,7 +54,7 @@ end
 
 RegisterNetEvent('rp:hud:toggle', function(state)
   visible = state == true
-  SendNUIMessage({ action = visible and 'show' or 'hide' })
+  applyHudVisibility()
 end)
 
 RegisterNetEvent('rp:hud:applyLayout', function(layout)
@@ -170,9 +176,20 @@ end)
 
 CreateThread(function()
   while true do
+    Wait(120)
+    local paused = IsPauseMenuActive()
+    if paused ~= hiddenByPauseMenu then
+      hiddenByPauseMenu = paused
+      applyHudVisibility()
+    end
+  end
+end)
+
+CreateThread(function()
+  while true do
     Wait(RPHudConfig.updateIntervalMs)
 
-    if visible then
+    if visible and (not hiddenByPauseMenu) then
       local ped = PlayerPedId()
       local vehicle = GetVehiclePedIsIn(ped, false)
       if vehicle ~= 0 then
@@ -197,6 +214,11 @@ CreateThread(function()
           data = { inVehicle = false }
         })
       end
+    else
+      SendNUIMessage({
+        action = 'updateVehicle',
+        data = { inVehicle = false }
+      })
     end
   end
 end)
