@@ -6,6 +6,7 @@ local creatorCam = nil
 local creatorAnchor = nil
 local creatorCameraYawOffset = 0.0
 local creatorCameraDistance = nil
+local creatorViewFocus = 'clothing'
 local cancelSnapshot = nil
 
 local function clampInt(value, minValue, maxValue)
@@ -78,15 +79,16 @@ local function updateCreatorCamera()
   end
 
   local cfg = RPSkinConfig.camera or {}
-  local baseDistance = tonumber(cfg.distance) or 2.7
+  local useFeatureFocus = creatorViewFocus == 'features'
+  local baseDistance = useFeatureFocus and (tonumber(cfg.featureDistance) or tonumber(cfg.distance) or 2.7) or (tonumber(cfg.distance) or 2.7)
   if type(creatorCameraDistance) ~= 'number' then
     creatorCameraDistance = baseDistance
   end
 
   local distance = creatorCameraDistance
   local height = tonumber(cfg.height) or 1.15
-  local targetHeight = tonumber(cfg.targetHeight) or -0.25
-  local fov = tonumber(cfg.fov) or 76.0
+  local targetHeight = useFeatureFocus and (tonumber(cfg.featureTargetHeight) or tonumber(cfg.targetHeight) or -0.25) or (tonumber(cfg.targetHeight) or -0.25)
+  local fov = useFeatureFocus and (tonumber(cfg.featureFov) or tonumber(cfg.fov) or 76.0) or (tonumber(cfg.fov) or 76.0)
 
   local heading = (creatorAnchor and creatorAnchor.heading) or GetEntityHeading(ped)
   local headingRad = math.rad(heading)
@@ -116,10 +118,11 @@ end
 
 local function adjustCreatorCameraDistance(direction)
   local cfg = RPSkinConfig.camera or {}
-  local baseDistance = tonumber(cfg.distance) or 2.7
+  local useFeatureFocus = creatorViewFocus == 'features'
+  local baseDistance = useFeatureFocus and (tonumber(cfg.featureDistance) or tonumber(cfg.distance) or 2.7) or (tonumber(cfg.distance) or 2.7)
   local zoomStep = tonumber(cfg.zoomStep) or 0.3
-  local zoomMin = tonumber(cfg.minDistance) or 1.2
-  local zoomMax = tonumber(cfg.maxDistance) or 9.5
+  local zoomMin = useFeatureFocus and (tonumber(cfg.featureMinDistance) or tonumber(cfg.minDistance) or 1.2) or (tonumber(cfg.minDistance) or 1.2)
+  local zoomMax = useFeatureFocus and (tonumber(cfg.featureMaxDistance) or tonumber(cfg.maxDistance) or 9.5) or (tonumber(cfg.maxDistance) or 9.5)
 
   if type(creatorCameraDistance) ~= 'number' then
     creatorCameraDistance = baseDistance
@@ -253,10 +256,11 @@ local function getSkinDefaults(sex)
       headBlendShapeSecond = 0,
       headBlendSkinFirst = 21,
       headBlendSkinSecond = 0,
-      faceShape = 50,
+      shapeVersion = 2,
+      faceShape = 0,
       eyes = 0,
       eyeColor = 0,
-      bodyShape = 50,
+      bodyShape = 0,
       eyebrows = -1,
       eyebrowsColor = 0
     }
@@ -390,6 +394,10 @@ local function normalizeSkinData(payload)
   local featureSlots = RPSkinConfig.featureSlots or {}
   local incomingFeatures = type(incoming.features) == 'table' and incoming.features or {}
   local hasHeadBlendFields = incomingFeatures.headBlendShapeFirst ~= nil
+  local featureScaleVersion = tonumber(incomingFeatures.shapeVersion)
+  if featureScaleVersion == nil then
+    featureScaleVersion = hasHeadBlendFields and 1 or 2
+  end
 
   for key, slot in pairs(componentSlots) do
     out.components[key] = tonumber((incoming.components or {})[key]) or slot.default or defaults.components[key] or 0
@@ -434,12 +442,14 @@ local function normalizeSkinData(payload)
       end
     end
 
-    if not hasHeadBlendFields and (key == 'faceShape' or key == 'bodyShape') and incomingValue ~= nil then
-      incomingValue = math.floor(((incomingValue + 100) / 2) + 0.5)
+    if (key == 'faceShape' or key == 'bodyShape') and incomingValue ~= nil and featureScaleVersion < 2 then
+      incomingValue = math.floor((incomingValue * 2) - 100 + 0.5)
     end
 
     out.features[key] = incomingValue or defaultValue
   end
+
+  out.features.shapeVersion = 2
 
   out.sex = (incoming.sex == 'f') and 'f' or 'm'
 
@@ -512,8 +522,10 @@ local function applySkinData(payload)
   local headBlendShapeSecond = clampFeatureValue('headBlendShapeSecond', 0)
   local headBlendSkinFirst = clampFeatureValue('headBlendSkinFirst', 21)
   local headBlendSkinSecond = clampFeatureValue('headBlendSkinSecond', 0)
-  local headBlendShapeMix = clampFeatureValue('faceShape', 50) / 100.0
-  local headBlendSkinMix = clampFeatureValue('bodyShape', 50) / 100.0
+  local faceShapeRaw = clampFeatureValue('faceShape', 0)
+  local bodyShapeRaw = clampFeatureValue('bodyShape', 0)
+  local headBlendShapeMix = (faceShapeRaw + 100) / 200.0
+  local headBlendSkinMix = (bodyShapeRaw + 100) / 200.0
 
   SetPedHeadBlendData(
     ped,
@@ -581,6 +593,8 @@ local function applySkinData(payload)
     end
   end
 
+  SetPedFaceFeature(ped, 0, faceShapeRaw / 100.0)
+  SetPedFaceFeature(ped, 20, bodyShapeRaw / 100.0)
   SetPedHairColor(ped, hairColor, hairHighlight)
 
   skin.overlays.beard = beard
@@ -593,6 +607,7 @@ local function applySkinData(payload)
   skin.overlays.hairHighlight = hairHighlight
   skin.features.eyebrows = eyebrowStyle
   skin.features.eyebrowsColor = eyebrowColor
+  skin.features.shapeVersion = 2
 
   return skin
 end
@@ -680,10 +695,18 @@ local function captureCurrentSkinData(sexFallback)
   captured.features.headBlendShapeSecond = 0
   captured.features.headBlendSkinFirst = 21
   captured.features.headBlendSkinSecond = 0
-  captured.features.faceShape = 50
+  local capturedFaceShape = 0
+  local capturedBodyShape = 0
+  if GetPedFaceFeature then
+    capturedFaceShape = clampInt(math.floor(((tonumber(GetPedFaceFeature(ped, 0)) or 0) * 100) + 0.5), -100, 100)
+    capturedBodyShape = clampInt(math.floor(((tonumber(GetPedFaceFeature(ped, 20)) or 0) * 100) + 0.5), -100, 100)
+  end
+
+  captured.features.shapeVersion = 2
+  captured.features.faceShape = capturedFaceShape
   captured.features.eyes = 0
   captured.features.eyeColor = eyeColor
-  captured.features.bodyShape = 50
+  captured.features.bodyShape = capturedBodyShape
   captured.features.eyebrows = eyebrowsValue
   captured.features.eyebrowsColor = hairColor
 
@@ -728,6 +751,7 @@ local function openCreator(defaults)
   currentSex = initial.sex
   currentMode = tostring(defaults and defaults.mode or 'creator')
   creatorCameraYawOffset = 0.0
+  creatorViewFocus = 'clothing'
   creatorCameraDistance = tonumber((RPSkinConfig.camera or {}).distance) or 2.7
 
   if defaults and defaults.model and defaults.model ~= '' then
@@ -879,6 +903,23 @@ RegisterNUICallback('zoomView', function(data, cb)
   cb({ ok = true })
 end)
 
+RegisterNUICallback('setViewFocus', function(data, cb)
+  if not creating then
+    cb({ ok = false })
+    return
+  end
+
+  local nextFocus = tostring(data and data.focus or 'clothing')
+  if nextFocus ~= 'features' then
+    nextFocus = 'clothing'
+  end
+
+  creatorViewFocus = nextFocus
+  creatorCameraDistance = nil
+  updateCreatorCamera()
+  cb({ ok = true })
+end)
+
 RegisterNUICallback('saveSkin', function(data, cb)
   if not creating then
     cb({ ok = false, message = 'Creator nicht offen.' })
@@ -917,6 +958,7 @@ RegisterNUICallback('cancelSkin', function(_, cb)
 
   creating = false
   currentMode = 'creator'
+  creatorViewFocus = 'clothing'
   SetNuiFocus(false, false)
   SendNUIMessage({ action = 'close' })
   destroyCreatorCamera()
@@ -934,6 +976,7 @@ end)
 RegisterNetEvent('rp:skin:closeCreator', function()
   creating = false
   currentMode = 'creator'
+  creatorViewFocus = 'clothing'
   SetNuiFocus(false, false)
   SendNUIMessage({ action = 'close' })
   destroyCreatorCamera()

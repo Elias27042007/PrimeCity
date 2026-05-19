@@ -42,6 +42,31 @@ body { margin: 0; background: transparent; }
   color: var(--muted);
 }
 
+.share {
+  margin: 0 0 12px 0;
+}
+
+.share label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.shareRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.shareRow select {
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+}
+
 .items {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -58,6 +83,50 @@ body { margin: 0; background: transparent; }
 .item h3 { margin: 0 0 6px; font-size: 15px; }
 .item p { margin: 0 0 8px; font-size: 12px; color: var(--muted); }
 
+.itemHead {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.icon {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(0,0,0,.22);
+  flex: 0 0 48px;
+}
+
+.titleWrap {
+  min-width: 0;
+}
+
+.titleWrap h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.titleWrap p {
+  margin: 0;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 64px 1fr 1fr 1fr;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.qty {
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 10px;
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  padding: 7px 8px;
+}
+
 button {
   border: 0;
   border-radius: 10px;
@@ -66,4 +135,8 @@ button {
   font-weight: 700;
   background: linear-gradient(90deg, #39d0ff, #7ba1ff);
   color: #121725;
+}
+
+button.danger {
+  background: linear-gradient(90deg, #ff7a7a, #ff9c5f);
 }

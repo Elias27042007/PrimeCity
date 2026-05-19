@@ -33,10 +33,11 @@ RPSkinConfig = {
     headBlendShapeSecond = { default = 0, min = 0, max = 45, type = 'headBlendParent' },
     headBlendSkinFirst = { default = 21, min = 0, max = 45, type = 'headBlendParent' },
     headBlendSkinSecond = { default = 0, min = 0, max = 45, type = 'headBlendParent' },
-    faceShape = { default = 50, min = 0, max = 100, type = 'headBlendShapeMix' },
+    shapeVersion = { default = 2, min = 1, max = 2, type = 'meta' },
+    faceShape = { default = 0, min = -100, max = 100, type = 'headBlendShapeMix' },
     eyes = { default = 0, min = -100, max = 100, type = 'faceFeature', index = 11 },
     eyeColor = { default = 0, min = 0, max = 30, type = 'eyeColor' },
-    bodyShape = { default = 50, min = 0, max = 100, type = 'headBlendSkinMix' },
+    bodyShape = { default = 0, min = -100, max = 100, type = 'headBlendSkinMix' },
     eyebrows = { default = -1, min = -1, max = 33, type = 'overlay', index = 2, colorType = 1 },
     eyebrowsColor = { default = 0, min = 0, max = 63, type = 'overlayColor', overlay = 2, colorType = 1 }
   },
@@ -44,11 +45,16 @@ RPSkinConfig = {
   camera = {
     rotateStep = 7,
     distance = 2.7,
-    minDistance = 1.2,
+    minDistance = 0.6,
     maxDistance = 9.5,
     zoomStep = 0.3,
     height = 1.15,
     targetHeight = -0.25,
-    fov = 76.0
+    fov = 76.0,
+    featureDistance = 0.9,
+    featureMinDistance = 0.35,
+    featureMaxDistance = 4.5,
+    featureTargetHeight = 0.62,
+    featureFov = 54.0
   }
 }

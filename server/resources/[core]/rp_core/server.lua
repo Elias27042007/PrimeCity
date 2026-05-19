@@ -318,10 +318,11 @@ local function spawnCharacter(source, character, isNew)
           headBlendShapeSecond = 0,
           headBlendSkinFirst = 21,
           headBlendSkinSecond = 0,
-          faceShape = 50,
+          shapeVersion = 2,
+          faceShape = 0,
           eyes = 0,
           eyeColor = 0,
-          bodyShape = 50,
+          bodyShape = 0,
           eyebrows = -1,
           eyebrowsColor = 0
         }

@@ -49,10 +49,11 @@ const defaultSkin = {
     headBlendShapeSecond: 0,
     headBlendSkinFirst: 21,
     headBlendSkinSecond: 0,
-    faceShape: 50,
+    shapeVersion: 2,
+    faceShape: 0,
     eyes: 0,
     eyeColor: 0,
-    bodyShape: 50,
+    bodyShape: 0,
     eyebrows: -1,
     eyebrowsColor: 0
   }
@@ -211,6 +212,7 @@ tabButtons.forEach((button) => {
   button.addEventListener('click', () => {
     state.activeTab = button.dataset.tab === 'features' ? 'features' : 'clothing';
     renderTabs();
+    setViewFocus(state.activeTab);
   });
 });
 
@@ -280,6 +282,14 @@ const zoomView = async (direction) => {
   }
 };
 
+const setViewFocus = async (focus) => {
+  try {
+    await post('setViewFocus', { focus: focus === 'features' ? 'features' : 'clothing' });
+  } catch (_err) {
+    // ignore focus transport errors
+  }
+};
+
 window.addEventListener('keydown', (event) => {
   if (app.classList.contains('hidden')) {
     return;
@@ -339,6 +349,7 @@ window.addEventListener('message', (event) => {
     stateEl.textContent = '';
     renderTabs();
     renderFields();
+    setViewFocus(state.activeTab);
   }
 
   if (action === 'close') {

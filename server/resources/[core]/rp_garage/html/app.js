@@ -20,6 +20,32 @@ const post = async (name, body = {}) => {
   return response.json();
 };
 
+const createVehicleIcon = (model, label) => {
+  const icon = document.createElement('img');
+  icon.className = 'vehicleIcon';
+  icon.alt = label || model || 'Fahrzeug';
+
+  const safeModel = encodeURIComponent(String(model || '').toLowerCase());
+  const localIcon = `icons/vehicles/${safeModel}.png`;
+  const vanillaIcon = `https://docs.fivem.net/vehicles/${safeModel}.webp`;
+  const fallbackIcon = 'icons/vehicles/_placeholder.png';
+  const candidates = [localIcon, vanillaIcon, fallbackIcon];
+  let index = 0;
+
+  const applyCandidate = () => {
+    if (index >= candidates.length) {
+      return;
+    }
+    icon.src = candidates[index];
+    index += 1;
+  };
+
+  icon.addEventListener('error', applyCandidate);
+  applyCandidate();
+
+  return icon;
+};
+
 const render = () => {
   titleEl.textContent = state.garageLabel || 'Garage';
   listEl.innerHTML = '';
@@ -29,7 +55,8 @@ const render = () => {
     if (!query) return true;
     const label = String(vehicle.label || '').toLowerCase();
     const plate = String(vehicle.plate || '').toLowerCase();
-    return label.includes(query) || plate.includes(query);
+    const model = String(vehicle.model || '').toLowerCase();
+    return label.includes(query) || plate.includes(query) || model.includes(query);
   });
 
   if (filtered.length === 0) {
@@ -43,14 +70,25 @@ const render = () => {
   filtered.forEach((vehicle) => {
     const isStored = Number(vehicle.stored) === 1;
     const actionLabel = isStored ? 'Ausparken' : 'Einparken';
+    const model = String(vehicle.model || '').toLowerCase();
     const row = document.createElement('div');
     row.className = 'row';
     row.innerHTML = `
-      <strong>${vehicle.label} (${vehicle.plate})</strong>
+      <div class="vehicleHead">
+        <div class="vehicleIconWrap"></div>
+        <div>
+          <strong>${vehicle.label} (${vehicle.plate})</strong>
+          <p class="modelLine">Modell: ${model || '-'}</p>
+        </div>
+      </div>
       <p>Status: ${isStored ? 'Eingeparkt' : 'Ausgeparkt'}</p>
       <p>Zustand: Motor ${Math.round(vehicle.engine_health || 1000)} | Karosserie ${Math.round(vehicle.body_health || 1000)}</p>
       <button>${actionLabel}</button>
     `;
+    const iconWrap = row.querySelector('.vehicleIconWrap');
+    if (iconWrap) {
+      iconWrap.appendChild(createVehicleIcon(model, vehicle.label));
+    }
 
     row.querySelector('button').addEventListener('click', async () => {
       if (isStored) {
