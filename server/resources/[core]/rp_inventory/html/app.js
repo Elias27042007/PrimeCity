@@ -2,16 +2,23 @@ const app = document.getElementById('app');
 const itemsEl = document.getElementById('items');
 const weightEl = document.getElementById('weight');
 const closeBtn = document.getElementById('closeBtn');
-const nearbyPlayersEl = document.getElementById('nearbyPlayers');
-const refreshNearbyBtn = document.getElementById('refreshNearbyBtn');
+
+const itemActionModal = document.getElementById('itemActionModal');
+const itemActionTitle = document.getElementById('itemActionTitle');
+const itemActionDescription = document.getElementById('itemActionDescription');
+const itemActionQty = document.getElementById('itemActionQty');
+const itemActionButtons = document.getElementById('itemActionButtons');
+const itemActionCloseBtn = document.getElementById('itemActionCloseBtn');
+
+const itemGiveSection = document.getElementById('itemGiveSection');
+const itemGivePlayers = document.getElementById('itemGivePlayers');
+const itemGiveRefreshBtn = document.getElementById('itemGiveRefreshBtn');
+const itemGiveConfirmBtn = document.getElementById('itemGiveConfirmBtn');
 
 const state = {
   inventory: { items: [], currentWeight: 0, maxWeight: 0 },
-  nearbyPlayers: []
-};
-
-const closeInventory = async () => {
-  await post('inventory:close');
+  nearbyPlayers: [],
+  selectedItem: null
 };
 
 const post = async (name, body = {}) => {
@@ -23,25 +30,34 @@ const post = async (name, body = {}) => {
   return response.json();
 };
 
+const closeInventory = async () => {
+  await post('inventory:close');
+};
+
+const hideGiveSection = () => {
+  itemGiveSection.classList.add('hidden');
+  itemGivePlayers.innerHTML = '';
+};
+
 const renderNearbyPlayers = () => {
   const players = state.nearbyPlayers || [];
-  nearbyPlayersEl.innerHTML = '';
+  itemGivePlayers.innerHTML = '';
 
   if (!players.length) {
     const option = document.createElement('option');
     option.value = '';
-    option.textContent = 'Kein Spieler in der Nähe';
-    nearbyPlayersEl.appendChild(option);
-    nearbyPlayersEl.disabled = true;
+    option.textContent = 'Kein Spieler in 5m Nähe';
+    itemGivePlayers.appendChild(option);
+    itemGivePlayers.disabled = true;
     return;
   }
 
-  nearbyPlayersEl.disabled = false;
+  itemGivePlayers.disabled = false;
   players.forEach((player) => {
     const option = document.createElement('option');
     option.value = String(player.id);
     option.textContent = `${player.name} (${player.id}) - ${player.distance}m`;
-    nearbyPlayersEl.appendChild(option);
+    itemGivePlayers.appendChild(option);
   });
 };
 
@@ -54,8 +70,6 @@ const refreshNearbyPlayers = async () => {
   }
   renderNearbyPlayers();
 };
-
-const getSelectedTargetId = () => Number(nearbyPlayersEl.value || 0);
 
 const createIcon = (item) => {
   const img = document.createElement('img');
@@ -78,98 +92,125 @@ const createIcon = (item) => {
   return img;
 };
 
+const getSelectedQuantity = () => {
+  const maxQty = Math.max(1, Number(state.selectedItem?.quantity || 1));
+  const value = Math.floor(Number(itemActionQty.value || 1));
+  if (!Number.isFinite(value) || value <= 0) {
+    return 1;
+  }
+  return Math.min(maxQty, value);
+};
+
+const closeItemModal = () => {
+  state.selectedItem = null;
+  hideGiveSection();
+  itemActionModal.classList.add('hidden');
+};
+
+const openItemModal = (item) => {
+  state.selectedItem = item;
+  hideGiveSection();
+
+  itemActionTitle.textContent = `${item.label} x${item.quantity}`;
+  itemActionDescription.textContent = item.description || 'Inventar-Item';
+
+  const maxQty = Math.max(1, Number(item.quantity || 1));
+  itemActionQty.min = '1';
+  itemActionQty.max = String(maxQty);
+  itemActionQty.value = '1';
+
+  itemActionButtons.innerHTML = '';
+
+  if (item.usable) {
+    const useBtn = document.createElement('button');
+    useBtn.type = 'button';
+    useBtn.textContent = 'Benutzen';
+    useBtn.addEventListener('click', async () => {
+      await post('inventory:useItem', {
+        itemName: item.itemName,
+        quantity: getSelectedQuantity()
+      });
+      closeItemModal();
+    });
+    itemActionButtons.appendChild(useBtn);
+  }
+
+  const giveBtn = document.createElement('button');
+  giveBtn.type = 'button';
+  giveBtn.textContent = 'Geben';
+  giveBtn.addEventListener('click', async () => {
+    itemGiveSection.classList.remove('hidden');
+    await refreshNearbyPlayers();
+  });
+  itemActionButtons.appendChild(giveBtn);
+
+  const dropBtn = document.createElement('button');
+  dropBtn.type = 'button';
+  dropBtn.className = 'danger';
+  dropBtn.textContent = 'Droppen';
+  dropBtn.addEventListener('click', async () => {
+    await post('inventory:dropItem', {
+      itemName: item.itemName,
+      quantity: getSelectedQuantity()
+    });
+    closeItemModal();
+  });
+  itemActionButtons.appendChild(dropBtn);
+
+  itemActionModal.classList.remove('hidden');
+};
+
 const render = () => {
   const data = state.inventory || { items: [] };
   weightEl.textContent = `${Number(data.currentWeight || 0)} / ${Number(data.maxWeight || 0)} g`;
   itemsEl.innerHTML = '';
 
   if (!data.items?.length) {
-    itemsEl.innerHTML = '<div class="item"><h3>Leer</h3><p>Kein Item vorhanden.</p></div>';
+    itemsEl.innerHTML = '<div class="item"><div class="titleWrap"><h3>Leer</h3><span class="count">x0</span></div></div>';
     return;
   }
 
   data.items.forEach((item) => {
     const card = document.createElement('div');
     card.className = 'item';
+    card.title = `${item.label} öffnen`;
 
     const head = document.createElement('div');
     head.className = 'itemHead';
+
     const icon = createIcon(item);
     const titleWrap = document.createElement('div');
     titleWrap.className = 'titleWrap';
     titleWrap.innerHTML = `
-      <h3>${item.label} x${item.quantity}</h3>
-      <p>${item.description || 'Kein Beschreibungstext'}</p>
+      <h3>${item.label}</h3>
+      <span class="count">x${item.quantity}</span>
     `;
+
     head.appendChild(icon);
     head.appendChild(titleWrap);
     card.appendChild(head);
 
-    const actions = document.createElement('div');
-    actions.className = 'actions';
-    const qtyInput = document.createElement('input');
-    qtyInput.type = 'number';
-    qtyInput.min = '1';
-    qtyInput.max = String(Math.max(1, Number(item.quantity || 1)));
-    qtyInput.value = '1';
-    qtyInput.className = 'qty';
-    actions.appendChild(qtyInput);
-
-    const isWeaponItem = String(item.itemName || '').toLowerCase().startsWith('weapon_');
-    if (item.usable && !isWeaponItem) {
-      const useBtn = document.createElement('button');
-      useBtn.textContent = 'Benutzen';
-      useBtn.addEventListener('click', async () => {
-        const quantity = Math.max(1, Math.floor(Number(qtyInput.value || 1)));
-        await post('inventory:useItem', { itemName: item.itemName, quantity });
-      });
-      actions.appendChild(useBtn);
-    }
-
-    const giveBtn = document.createElement('button');
-    giveBtn.textContent = 'Geben';
-    giveBtn.addEventListener('click', async () => {
-      const quantity = Math.max(1, Math.floor(Number(qtyInput.value || 1)));
-      const targetId = getSelectedTargetId();
-      if (!targetId) {
-        return;
-      }
-      await post('inventory:giveItem', {
-        itemName: item.itemName,
-        quantity,
-        targetId
-      });
-      await refreshNearbyPlayers();
+    card.addEventListener('click', () => {
+      openItemModal(item);
     });
-    actions.appendChild(giveBtn);
 
-    const dropBtn = document.createElement('button');
-    dropBtn.textContent = 'Droppen';
-    dropBtn.className = 'danger';
-    dropBtn.addEventListener('click', async () => {
-      const quantity = Math.max(1, Math.floor(Number(qtyInput.value || 1)));
-      await post('inventory:dropItem', { itemName: item.itemName, quantity });
-    });
-    actions.appendChild(dropBtn);
-
-    card.appendChild(actions);
     itemsEl.appendChild(card);
   });
 };
 
-window.addEventListener('message', async (event) => {
+window.addEventListener('message', (event) => {
   const { action, data } = event.data || {};
   if (action === 'open') {
     app.classList.remove('hidden');
     state.inventory = data || { items: [] };
     render();
-    await refreshNearbyPlayers();
   }
   if (action === 'update') {
     state.inventory = data || { items: [] };
     render();
   }
   if (action === 'close') {
+    closeItemModal();
     app.classList.add('hidden');
   }
 });
@@ -178,8 +219,37 @@ closeBtn.addEventListener('click', async () => {
   await closeInventory();
 });
 
-refreshNearbyBtn.addEventListener('click', async () => {
+itemActionCloseBtn.addEventListener('click', () => {
+  closeItemModal();
+});
+
+itemActionModal.addEventListener('click', (event) => {
+  if (event.target === itemActionModal) {
+    closeItemModal();
+  }
+});
+
+itemGiveRefreshBtn.addEventListener('click', async () => {
   await refreshNearbyPlayers();
+});
+
+itemGiveConfirmBtn.addEventListener('click', async () => {
+  if (!state.selectedItem) {
+    return;
+  }
+
+  const targetId = Number(itemGivePlayers.value || 0);
+  if (!targetId) {
+    return;
+  }
+
+  await post('inventory:giveItem', {
+    itemName: state.selectedItem.itemName,
+    quantity: getSelectedQuantity(),
+    targetId
+  });
+
+  closeItemModal();
 });
 
 window.addEventListener('keydown', async (event) => {
@@ -189,6 +259,12 @@ window.addEventListener('keydown', async (event) => {
   if (app.classList.contains('hidden')) {
     return;
   }
+
   event.preventDefault();
+  if (!itemActionModal.classList.contains('hidden')) {
+    closeItemModal();
+    return;
+  }
+
   await closeInventory();
 });

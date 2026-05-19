@@ -16,14 +16,33 @@
       <div class="meta">
         <span id="weight">0 / 0</span>
       </div>
-      <div class="share">
-        <label for="nearbyPlayers">Spieler in Nähe (für "Geben")</label>
-        <div class="shareRow">
-          <select id="nearbyPlayers"></select>
-          <button id="refreshNearbyBtn" type="button">Aktualisieren</button>
+      <div id="items" class="items"></div>
+    </div>
+
+    <div id="itemActionModal" class="modal hidden">
+      <div class="modalCard">
+        <div class="modalHead">
+          <h2 id="itemActionTitle">Item</h2>
+          <button id="itemActionCloseBtn" type="button">Schließen</button>
+        </div>
+        <div class="modalBody">
+          <p id="itemActionDescription" class="muted">Aktionen auswählen</p>
+
+          <label for="itemActionQty" class="modalLabel">Menge</label>
+          <input id="itemActionQty" class="qtyInput" type="number" min="1" step="1" value="1" />
+
+          <div id="itemActionButtons" class="actionButtons"></div>
+
+          <div id="itemGiveSection" class="giveSection hidden">
+            <div class="giveHead">
+              <span>Spieler in 5m</span>
+              <button id="itemGiveRefreshBtn" type="button">Aktualisieren</button>
+            </div>
+            <select id="itemGivePlayers"></select>
+            <button id="itemGiveConfirmBtn" class="confirmGiveBtn" type="button">Geben bestätigen</button>
+          </div>
         </div>
       </div>
-      <div id="items" class="items"></div>
     </div>
   </div>
   <script src="app.js"></script>
