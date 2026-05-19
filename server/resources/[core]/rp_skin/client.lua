@@ -201,12 +201,6 @@ local function ensureCreatorViewLockThread()
       DisableControlAction(0, 25, true)   -- Aim
       DisableControlAction(0, 241, true)  -- Mouse wheel up
       DisableControlAction(0, 242, true)  -- Mouse wheel down
-      if IsDisabledControlJustPressed(0, 241) or IsControlJustPressed(0, 241) then
-        adjustCreatorCameraDistance(-1)
-      end
-      if IsDisabledControlJustPressed(0, 242) or IsControlJustPressed(0, 242) then
-        adjustCreatorCameraDistance(1)
-      end
 
       Wait(0)
     end
@@ -678,6 +672,20 @@ RegisterNUICallback('rotateView', function(data, cb)
 
   creatorCameraYawOffset = (creatorCameraYawOffset + delta) % 360.0
   updateCreatorCamera()
+
+  cb({ ok = true })
+end)
+
+RegisterNUICallback('zoomView', function(data, cb)
+  if not creating then
+    cb({ ok = false })
+    return
+  end
+
+  local direction = tonumber(data and data.direction) or 0
+  if direction ~= 0 then
+    adjustCreatorCameraDistance(direction)
+  end
 
   cb({ ok = true })
 end)

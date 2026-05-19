@@ -230,13 +230,21 @@ const rotateView = async (direction) => {
   }
 };
 
+const zoomView = async (direction) => {
+  try {
+    await post('zoomView', { direction });
+  } catch (_err) {
+    // ignore zoom transport errors
+  }
+};
+
 window.addEventListener('keydown', (event) => {
   if (app.classList.contains('hidden')) {
     return;
   }
 
   const key = event.key;
-  if (key === 'ArrowLeft' || key === 'ArrowRight') {
+  if (key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp' || key === 'ArrowDown') {
     const active = document.activeElement;
     const isTextField = active && (
       active.tagName === 'INPUT' ||
@@ -246,7 +254,11 @@ window.addEventListener('keydown', (event) => {
 
     if (!isTextField) {
       event.preventDefault();
-      rotateView(key === 'ArrowLeft' ? -1 : 1);
+      if (key === 'ArrowLeft' || key === 'ArrowRight') {
+        rotateView(key === 'ArrowLeft' ? -1 : 1);
+      } else {
+        zoomView(key === 'ArrowUp' ? -1 : 1);
+      }
       return;
     }
   }
