@@ -20,6 +20,11 @@ local function normalizePedState()
   SetPlayerInvincible(player, false)
   SetEntityInvincible(ped, false)
   SetEntityCanBeDamaged(ped, true)
+  SetEntityVisible(ped, true, false)
+  SetEntityAlpha(ped, 255, false)
+  if ResetEntityAlpha then
+    ResetEntityAlpha(ped)
+  end
   FreezeEntityPosition(ped, false)
   SetPedCanRagdoll(ped, true)
   ClearPedTasksImmediately(ped)

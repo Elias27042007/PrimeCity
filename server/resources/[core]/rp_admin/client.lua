@@ -318,6 +318,13 @@ local function setNoclipState(enabled, skipServerNotify)
   SetEntityVisible(entity, not noclipEnabled, false)
   SetEntityAlpha(entity, noclipEnabled and 0 or 255, false)
 
+  -- Keep player ped visibility in sync too, so no stale invisible state remains.
+  SetEntityVisible(ped, not noclipEnabled, false)
+  SetEntityAlpha(ped, noclipEnabled and 0 or 255, false)
+  if not noclipEnabled and ResetEntityAlpha then
+    ResetEntityAlpha(ped)
+  end
+
   if not noclipEnabled and isFrozenByAdmin then
     FreezeEntityPosition(PlayerPedId(), true)
   end
@@ -1077,12 +1084,21 @@ CreateThread(function()
 end)
 
 RegisterNetEvent('playerSpawned', function()
+  local ped = PlayerPedId()
+  if not noclipEnabled then
+    SetEntityVisible(ped, true, false)
+    SetEntityAlpha(ped, 255, false)
+    if ResetEntityAlpha then
+      ResetEntityAlpha(ped)
+    end
+  end
+
   if not adutyEnabled then
     return
   end
 
   Wait(350)
-  local ped = PlayerPedId()
+  ped = PlayerPedId()
   setAdutyInvincibility(true)
   if adutyCurrentOutfit then
     applyAdutyOutfit(ped, adutyCurrentOutfit)
