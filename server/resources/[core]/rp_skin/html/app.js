@@ -52,6 +52,7 @@ const state = {
 };
 
 let previewTimer = null;
+let cancelInFlight = false;
 
 const deepMerge = (base, incoming) => {
   const out = Array.isArray(base) ? [...base] : { ...base };
@@ -208,6 +209,32 @@ saveBtn.addEventListener('click', async () => {
   }
 });
 
+const cancelSkin = async () => {
+  if (cancelInFlight || app.classList.contains('hidden')) {
+    return;
+  }
+
+  cancelInFlight = true;
+  try {
+    await post('cancelSkin', {});
+  } catch (_err) {
+    // ignore cancel transport errors
+  } finally {
+    cancelInFlight = false;
+  }
+};
+
+window.addEventListener('keydown', (event) => {
+  if (app.classList.contains('hidden')) {
+    return;
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    cancelSkin();
+  }
+});
+
 window.addEventListener('message', (event) => {
   const { action, data } = event.data || {};
 
@@ -237,5 +264,6 @@ window.addEventListener('message', (event) => {
   if (action === 'close') {
     app.classList.add('hidden');
     stateEl.textContent = '';
+    cancelInFlight = false;
   }
 });

@@ -4,12 +4,26 @@ local currentMode = 'creator'
 local creatorViewLockThreadRunning = false
 local creatorCam = nil
 local creatorAnchor = nil
+local cancelSnapshot = nil
 
 local function clampInt(value, minValue, maxValue)
   value = math.floor(tonumber(value) or minValue)
   if value < minValue then value = minValue end
   if value > maxValue then value = maxValue end
   return value
+end
+
+local function deepCopyTable(value)
+  if type(value) ~= 'table' then
+    return value
+  end
+
+  local out = {}
+  for key, entry in pairs(value) do
+    out[key] = deepCopyTable(entry)
+  end
+
+  return out
 end
 
 local function loadModel(model)
@@ -482,6 +496,7 @@ local function openCreator(defaults)
   end
 
   initial = applySkinData({ skin = initial })
+  cancelSnapshot = deepCopyTable(initial)
 
   SetNuiFocus(true, true)
   pushOpenStateToNui(currentMode, initial)
@@ -614,6 +629,32 @@ RegisterNUICallback('saveSkin', function(data, cb)
   cb({ ok = true })
 end)
 
+RegisterNUICallback('cancelSkin', function(_, cb)
+  if not creating then
+    cb({ ok = false })
+    return
+  end
+
+  if type(cancelSnapshot) == 'table' then
+    applySkinData({ skin = cancelSnapshot })
+  end
+
+  creating = false
+  currentMode = 'creator'
+  SetNuiFocus(false, false)
+  SendNUIMessage({ action = 'close' })
+  destroyCreatorCamera()
+
+  local ped = PlayerPedId()
+  FreezeEntityPosition(ped, false)
+  SetEntityInvincible(ped, false)
+  SetFollowPedCamViewMode(2)
+  SetFollowVehicleCamViewMode(2)
+  cancelSnapshot = nil
+
+  cb({ ok = true })
+end)
+
 RegisterNetEvent('rp:skin:closeCreator', function()
   creating = false
   currentMode = 'creator'
@@ -626,6 +667,7 @@ RegisterNetEvent('rp:skin:closeCreator', function()
   SetEntityInvincible(ped, false)
   SetFollowPedCamViewMode(2)
   SetFollowVehicleCamViewMode(2)
+  cancelSnapshot = nil
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)
@@ -636,4 +678,5 @@ AddEventHandler('onResourceStop', function(resourceName)
   creating = false
   destroyCreatorCamera()
   SetNuiFocus(false, false)
+  cancelSnapshot = nil
 end)

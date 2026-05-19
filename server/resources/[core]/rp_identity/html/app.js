@@ -5,10 +5,12 @@ const title = document.getElementById('title');
 const subtitle = document.getElementById('subtitle');
 const submitButton = document.getElementById('submitButton');
 let currentMode = 'create';
+let cancelInFlight = false;
 
 const setVisible = (visible) => {
   app.classList.toggle('hidden', !visible);
   if (!visible) {
+    cancelInFlight = false;
     currentMode = 'create';
     title.textContent = 'Personalausweis erstellen';
     subtitle.textContent = 'Bitte gib deine Charakterdaten ein.';
@@ -78,5 +80,35 @@ form.addEventListener('submit', async (event) => {
     }
   } catch (err) {
     message.textContent = 'NUI-Fehler beim Senden.';
+  }
+});
+
+const cancelIdentity = async () => {
+  if (cancelInFlight || app.classList.contains('hidden')) {
+    return;
+  }
+
+  cancelInFlight = true;
+  try {
+    await fetch(`https://${GetParentResourceName()}/cancelIdentity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+      body: JSON.stringify({})
+    });
+  } catch (_err) {
+    // ignore cancel transport errors
+  } finally {
+    cancelInFlight = false;
+  }
+};
+
+window.addEventListener('keydown', (event) => {
+  if (app.classList.contains('hidden')) {
+    return;
+  }
+
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    cancelIdentity();
   }
 });

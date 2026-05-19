@@ -90,6 +90,16 @@ RegisterNUICallback('submitIdentity', function(data, cb)
   cb({ ok = true })
 end)
 
+RegisterNUICallback('cancelIdentity', function(_, cb)
+  if not isOpen then
+    cb({ ok = false })
+    return
+  end
+
+  setUI(false)
+  cb({ ok = true })
+end)
+
 RegisterNetEvent('rp:identity:close', function()
   setUI(false)
 end)
