@@ -674,14 +674,18 @@ function openGarageEditModal(garageId) {
             <label class="inline-check"><input id="editGarageBlipEnabled" type="checkbox" ${Number(garage.blip_enabled) === 1 ? 'checked' : ''} /> Blip anzeigen</label>
             <label class="inline-check"><input id="editGarageEnabled" type="checkbox" ${Number(garage.enabled) === 1 ? 'checked' : ''} /> Aktiv</label>
           </div>
-          <label class="muted">Marker (Einparken/Ausparken)</label>
-          <input id="editGarageX" type="number" step="0.01" placeholder="Marker X" value="${escapeHtml(garage.pos_x ?? '')}" />
-          <input id="editGarageY" type="number" step="0.01" placeholder="Marker Y" value="${escapeHtml(garage.pos_y ?? '')}" />
-          <input id="editGarageZ" type="number" step="0.01" placeholder="Marker Z" value="${escapeHtml(garage.pos_z ?? '')}" />
-          <label class="muted">Spawn</label>
-          <input id="editGarageSpawnX" type="number" step="0.01" placeholder="Spawn X" value="${escapeHtml(garage.spawn_x ?? '')}" />
-          <input id="editGarageSpawnY" type="number" step="0.01" placeholder="Spawn Y" value="${escapeHtml(garage.spawn_y ?? '')}" />
-          <input id="editGarageSpawnZ" type="number" step="0.01" placeholder="Spawn Z" value="${escapeHtml(garage.spawn_z ?? '')}" />
+          <label class="muted coord-label">Marker (Einparken/Ausparken)</label>
+          <div class="coord-row">
+            <input id="editGarageX" type="number" step="0.01" placeholder="Marker X" value="${escapeHtml(garage.pos_x ?? '')}" />
+            <input id="editGarageY" type="number" step="0.01" placeholder="Marker Y" value="${escapeHtml(garage.pos_y ?? '')}" />
+            <input id="editGarageZ" type="number" step="0.01" placeholder="Marker Z" value="${escapeHtml(garage.pos_z ?? '')}" />
+          </div>
+          <label class="muted coord-label">Spawn</label>
+          <div class="coord-row">
+            <input id="editGarageSpawnX" type="number" step="0.01" placeholder="Spawn X" value="${escapeHtml(garage.spawn_x ?? '')}" />
+            <input id="editGarageSpawnY" type="number" step="0.01" placeholder="Spawn Y" value="${escapeHtml(garage.spawn_y ?? '')}" />
+            <input id="editGarageSpawnZ" type="number" step="0.01" placeholder="Spawn Z" value="${escapeHtml(garage.spawn_z ?? '')}" />
+          </div>
           <input id="editGarageSpawnH" type="number" step="0.01" placeholder="Spawn Heading" value="${escapeHtml(garage.spawn_heading ?? '')}" />
           <label class="muted">Extra-Spawnpunkte (optional)</label>
           <div class="list">
@@ -1540,21 +1544,25 @@ function renderSettings() {
 
         <div class="card">
           <h3>Neue Garage erstellen</h3>
-          <div class="form-grid">
+          <div class="form-grid full">
             <input id="newGarageLabel" type="text" placeholder="Garagenname" value="${escapeHtml(garageCreateDraft.label || '')}" />
             <input id="newGarageCode" type="text" placeholder="Garage-Code (optional)" value="${escapeHtml(garageCreateDraft.garageCode || '')}" />
             <div class="actions">
               <label class="inline-check"><input id="newGarageBlipEnabled" type="checkbox" ${garageCreateDraft.blipEnabled !== false ? 'checked' : ''} /> Blip anzeigen</label>
               <label class="inline-check"><input id="newGarageEnabled" type="checkbox" ${garageCreateDraft.enabled !== false ? 'checked' : ''} /> Aktiv</label>
             </div>
-            <label class="muted">Marker (Einparken/Ausparken)</label>
-            <input id="newGarageX" type="number" step="0.01" placeholder="Marker X" value="${escapeHtml(garageCreateDraft.markerX ?? '')}" />
-            <input id="newGarageY" type="number" step="0.01" placeholder="Marker Y" value="${escapeHtml(garageCreateDraft.markerY ?? '')}" />
-            <input id="newGarageZ" type="number" step="0.01" placeholder="Marker Z" value="${escapeHtml(garageCreateDraft.markerZ ?? '')}" />
-            <label class="muted">Spawn</label>
-            <input id="newGarageSpawnX" type="number" step="0.01" placeholder="Spawn X" value="${escapeHtml(garageCreateDraft.spawnX ?? '')}" />
-            <input id="newGarageSpawnY" type="number" step="0.01" placeholder="Spawn Y" value="${escapeHtml(garageCreateDraft.spawnY ?? '')}" />
-            <input id="newGarageSpawnZ" type="number" step="0.01" placeholder="Spawn Z" value="${escapeHtml(garageCreateDraft.spawnZ ?? '')}" />
+            <label class="muted coord-label">Marker (Einparken/Ausparken)</label>
+            <div class="coord-row">
+              <input id="newGarageX" type="number" step="0.01" placeholder="Marker X" value="${escapeHtml(garageCreateDraft.markerX ?? '')}" />
+              <input id="newGarageY" type="number" step="0.01" placeholder="Marker Y" value="${escapeHtml(garageCreateDraft.markerY ?? '')}" />
+              <input id="newGarageZ" type="number" step="0.01" placeholder="Marker Z" value="${escapeHtml(garageCreateDraft.markerZ ?? '')}" />
+            </div>
+            <label class="muted coord-label">Spawn</label>
+            <div class="coord-row">
+              <input id="newGarageSpawnX" type="number" step="0.01" placeholder="Spawn X" value="${escapeHtml(garageCreateDraft.spawnX ?? '')}" />
+              <input id="newGarageSpawnY" type="number" step="0.01" placeholder="Spawn Y" value="${escapeHtml(garageCreateDraft.spawnY ?? '')}" />
+              <input id="newGarageSpawnZ" type="number" step="0.01" placeholder="Spawn Z" value="${escapeHtml(garageCreateDraft.spawnZ ?? '')}" />
+            </div>
             <input id="newGarageSpawnH" type="number" step="0.01" placeholder="Spawn Heading" value="${escapeHtml(garageCreateDraft.spawnH ?? '')}" />
           </div>
           <div class="actions" style="margin-top:10px;">

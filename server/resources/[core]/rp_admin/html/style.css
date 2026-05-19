@@ -434,6 +434,16 @@ textarea {
   grid-template-columns: 1fr;
 }
 
+.coord-label {
+  margin-top: 2px;
+}
+
+.coord-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .footer {
   border-top: 1px solid var(--border);
   background: rgba(12, 16, 26, 0.95);
