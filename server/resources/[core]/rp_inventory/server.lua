@@ -282,6 +282,29 @@ local function pushWeaponSync(source, cache)
   TriggerClientEvent('rp:inventory:syncWeapons', source, { items = items })
 end
 
+local function getCachedItemQuantity(cache, itemName)
+  if type(cache) ~= 'table' or type(cache.items) ~= 'table' then
+    return 0
+  end
+
+  local row = cache.items[tostring(itemName or '')]
+  if not row then
+    return 0
+  end
+
+  return math.max(0, math.floor(tonumber(row.quantity) or 0))
+end
+
+local function syncBargeldToMoney(source, cache)
+  source = tonumber(source) or 0
+  if source <= 0 then
+    return
+  end
+
+  local quantity = getCachedItemQuantity(cache or InventoryCache[source], 'bargeld')
+  TriggerEvent('rp:money:setCashFromInventory', source, quantity)
+end
+
 local function serializableInventory(cache)
   local list = {}
   for _, item in pairs(cache.items) do
@@ -453,6 +476,9 @@ local function addItem(source, itemName, quantity)
   if isWeaponItem(itemName) then
     pushWeaponSync(source, cache)
   end
+  if itemName == 'bargeld' then
+    syncBargeldToMoney(source, cache)
+  end
   return true
 end
 
@@ -482,6 +508,9 @@ local function removeItem(source, itemName, quantity)
   pushInventory(source)
   if isWeaponItem(itemName) then
     pushWeaponSync(source, cache)
+  end
+  if itemName == 'bargeld' then
+    syncBargeldToMoney(source, cache)
   end
   return true
 end
@@ -579,6 +608,7 @@ AddEventHandler('rp:inventory:loadCharacterInventory', function(source, characte
     return
   end
   pushWeaponSync(source, cache)
+  syncBargeldToMoney(source, cache)
 end)
 
 RegisterNetEvent('rp:inventory:requestOpen', function()
@@ -760,6 +790,14 @@ end)
 exports('GetInventory', function(source)
   local cache = InventoryCache[source]
   return cache and cache.items or {}
+end)
+exports('GetItemQuantity', function(source, itemName)
+  source = tonumber(source) or source
+  local cache = InventoryCache[source]
+  if not cache then
+    cache = select(1, loadCharacterInventoryIntoCache(source, true))
+  end
+  return getCachedItemQuantity(cache, itemName)
 end)
 
 AddEventHandler('onResourceStart', function(resourceName)

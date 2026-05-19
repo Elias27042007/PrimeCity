@@ -154,7 +154,7 @@ local function getCommandCatalog()
       help = 'Gibt einem Spieler Geld.',
       params = {
         { name = 'id', help = 'Server-ID des Spielers' },
-        { name = 'bar/bank/bargeld', help = 'Kontotyp oder Inventar-Bargeld' },
+        { name = 'bargeld/bank', help = 'Kontotyp' },
         { name = 'menge', help = 'Betrag > 0' }
       },
       permission = GIVE_MONEY_PERMISSION_KEY
@@ -164,7 +164,7 @@ local function getCommandCatalog()
       help = 'Setzt den Kontostand eines Spielers.',
       params = {
         { name = 'id', help = 'Server-ID des Spielers' },
-        { name = 'bar/bank', help = 'Kontotyp' },
+        { name = 'bargeld/bank', help = 'Kontotyp' },
         { name = 'stand', help = 'Neuer Kontostand >= 0' }
       },
       permission = SET_MONEY_PERMISSION_KEY
@@ -778,14 +778,14 @@ local function applyCommandParamOptions(commandName, params)
 
   if normalizedCommand == giveMoneyCommand then
     if out[2] then
-      out[2].options = { 'bar', 'bank', 'bargeld' }
+      out[2].options = { 'bargeld', 'bank' }
     end
     return out
   end
 
   if normalizedCommand == setMoneyCommand then
     if out[2] then
-      out[2].options = { 'bar', 'bank' }
+      out[2].options = { 'bargeld', 'bank' }
     end
     return out
   end
@@ -1216,8 +1216,8 @@ local function bootstrapAdminData()
       ('commands.noclip', 'Noclip-Befehl', 'Darf /noclip ausführen'),
       ('commands.name', 'Nametag-Befehl', 'Darf /name ausführen'),
       ('commands.aduty', 'Admin-Duty-Befehl', 'Darf /aduty ausführen'),
-      ('commands.givemoney', 'GiveMoney-Befehl', 'Darf /givemoney [id] [bar/bank/bargeld] [menge] ausführen'),
-      ('commands.setmoney', 'SetMoney-Befehl', 'Darf /setmoney [id] [bar/bank] [stand] ausführen'),
+      ('commands.givemoney', 'GiveMoney-Befehl', 'Darf /givemoney [id] [bargeld/bank] [menge] ausführen'),
+      ('commands.setmoney', 'SetMoney-Befehl', 'Darf /setmoney [id] [bargeld/bank] [stand] ausführen'),
       ('commands.giveitem', 'GiveItem-Befehl', 'Darf /giveitem [id] [item] [anzahl] ausführen'),
       ('commands.setjob', 'SetJob-Befehl', 'Darf /setjob [id] [job] [rang] ausführen'),
       ('commands.giveweapon', 'GiveWeapon-Befehl', 'Darf /giveweapon [id] [modell] ausführen'),
@@ -3810,8 +3810,8 @@ end
 
 local function parseMoneyAccountType(rawValue)
   local value = trim(tostring(rawValue or '')):lower()
-  if value == 'bar' or value == 'cash' then
-    return 'cash', 'Bargeld'
+  if value == 'bargeld' then
+    return 'inventory_cash', 'Bargeld'
   end
   if value == 'bank' then
     return 'bank', 'Bank'
@@ -3821,11 +3821,6 @@ local function parseMoneyAccountType(rawValue)
 end
 
 local function parseGiveMoneyType(rawValue)
-  local value = trim(tostring(rawValue or '')):lower()
-  if value == 'bargeld' then
-    return 'inventory_cash', 'Bargeld (Inventar)'
-  end
-
   return parseMoneyAccountType(rawValue)
 end
 
@@ -4542,7 +4537,7 @@ end
 
 local function handleGiveMoneyCommand(source, args)
   if source <= 0 then
-    print(('[rp_admin] Nutze den Befehl /%s <id> <bar|bank|bargeld> <menge> im Spiel.'):format(RPAdminConfig.giveMoneyCommand or 'givemoney'))
+    print(('[rp_admin] Nutze den Befehl /%s <id> <bargeld|bank> <menge> im Spiel.'):format(RPAdminConfig.giveMoneyCommand or 'givemoney'))
     return
   end
 
@@ -4565,7 +4560,7 @@ local function handleGiveMoneyCommand(source, args)
 
   local accountType, accountLabel = parseGiveMoneyType(args and args[2])
   if not accountType then
-    notify(source, 'error', ('Nutzung: /%s <id> <bar|bank|bargeld> <menge>'):format(RPAdminConfig.giveMoneyCommand or 'givemoney'))
+    notify(source, 'error', ('Nutzung: /%s <id> <bargeld|bank> <menge>'):format(RPAdminConfig.giveMoneyCommand or 'givemoney'))
     return
   end
 
@@ -4576,9 +4571,7 @@ local function handleGiveMoneyCommand(source, args)
   end
 
   local success, reason
-  if accountType == 'cash' then
-    success, reason = exports.rp_money:AddCash(targetSource, amount)
-  elseif accountType == 'inventory_cash' then
+  if accountType == 'inventory_cash' then
     success, reason = exports.rp_inventory:AddItem(targetSource, 'bargeld', amount)
   else
     success, reason = exports.rp_money:AddBank(targetSource, amount, 'admin', 'admin_givemoney')
@@ -4608,7 +4601,7 @@ end
 
 local function handleSetMoneyCommand(source, args)
   if source <= 0 then
-    print(('[rp_admin] Nutze den Befehl /%s <id> <bar|bank> <stand> im Spiel.'):format(RPAdminConfig.setMoneyCommand or 'setmoney'))
+    print(('[rp_admin] Nutze den Befehl /%s <id> <bargeld|bank> <stand> im Spiel.'):format(RPAdminConfig.setMoneyCommand or 'setmoney'))
     return
   end
 
@@ -4631,7 +4624,7 @@ local function handleSetMoneyCommand(source, args)
 
   local accountType, accountLabel = parseMoneyAccountType(args and args[2])
   if not accountType then
-    notify(source, 'error', ('Nutzung: /%s <id> <bar|bank> <stand>'):format(RPAdminConfig.setMoneyCommand or 'setmoney'))
+    notify(source, 'error', ('Nutzung: /%s <id> <bargeld|bank> <stand>'):format(RPAdminConfig.setMoneyCommand or 'setmoney'))
     return
   end
 
@@ -4642,8 +4635,8 @@ local function handleSetMoneyCommand(source, args)
   end
 
   local currentValue = 0
-  if accountType == 'cash' then
-    currentValue = math.floor(tonumber(exports.rp_money:GetCash(targetSource)) or 0)
+  if accountType == 'inventory_cash' then
+    currentValue = math.floor(tonumber(exports.rp_inventory:GetItemQuantity(targetSource, 'bargeld')) or 0)
   else
     currentValue = math.floor(tonumber(exports.rp_money:GetBank(targetSource)) or 0)
   end
@@ -4652,15 +4645,15 @@ local function handleSetMoneyCommand(source, args)
   if delta ~= 0 then
     local success, reason
     if delta > 0 then
-      if accountType == 'cash' then
-        success, reason = exports.rp_money:AddCash(targetSource, delta)
+      if accountType == 'inventory_cash' then
+        success, reason = exports.rp_inventory:AddItem(targetSource, 'bargeld', delta)
       else
         success, reason = exports.rp_money:AddBank(targetSource, delta, 'admin', 'admin_setmoney_plus')
       end
     else
       local removeAmount = math.abs(delta)
-      if accountType == 'cash' then
-        success, reason = exports.rp_money:RemoveCash(targetSource, removeAmount)
+      if accountType == 'inventory_cash' then
+        success, reason = exports.rp_inventory:RemoveItem(targetSource, 'bargeld', removeAmount)
       else
         success, reason = exports.rp_money:RemoveBank(targetSource, removeAmount, 'admin', 'admin_setmoney_minus')
       end

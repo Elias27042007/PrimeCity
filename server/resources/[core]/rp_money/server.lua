@@ -1,4 +1,5 @@
 local AccountsCache = {}
+local ensureCharacterAccounts
 
 local function validAmount(amount)
   amount = tonumber(amount)
@@ -15,6 +16,10 @@ end
 
 local function getCharacterId(source)
   return exports.rp_core:GetCharacterId(source)
+end
+
+local function inventoryResourceReady()
+  return GetResourceState('rp_inventory') == 'started'
 end
 
 local function pushBalances(source)
@@ -71,7 +76,25 @@ local function setBalance(source, accountType, newValue)
   return true
 end
 
-local function ensureCharacterAccounts(source, characterId)
+local function setCashFromInventory(source, quantity)
+  source = tonumber(source) or 0
+  quantity = math.max(0, math.floor(tonumber(quantity) or 0))
+  if source <= 0 then
+    return false
+  end
+
+  if not AccountsCache[source] then
+    local characterId = getCharacterId(source)
+    if not characterId then
+      return false
+    end
+    ensureCharacterAccounts(source, characterId)
+  end
+
+  return setBalance(source, 'cash', quantity)
+end
+
+ensureCharacterAccounts = function(source, characterId)
   local rows = MySQL.query.await('SELECT account_type, balance FROM accounts WHERE character_id = ?', { characterId })
 
   local cash = nil
@@ -113,6 +136,19 @@ AddEventHandler('rp:money:loadCharacterAccounts', function(source, characterId)
 end)
 
 local function getCash(source)
+  if inventoryResourceReady() then
+    local ok, quantity = pcall(function()
+      return exports.rp_inventory:GetItemQuantity(source, 'bargeld')
+    end)
+    if ok and quantity ~= nil then
+      local normalized = math.max(0, math.floor(tonumber(quantity) or 0))
+      if AccountsCache[source] then
+        AccountsCache[source].cash = normalized
+      end
+      return normalized
+    end
+  end
+
   local cache = AccountsCache[source]
   if not cache then return 0 end
   return cache.cash
@@ -122,6 +158,14 @@ local function addCash(source, amount)
   local ok, normalized = validAmount(amount)
   if not ok then return false, 'Ungültiger Betrag.' end
 
+  if inventoryResourceReady() then
+    local added, reason = exports.rp_inventory:AddItem(source, 'bargeld', normalized)
+    if not added then
+      return false, reason or 'Bargeld konnte nicht hinzugefügt werden.'
+    end
+    return true
+  end
+
   local cash = getCash(source)
   return setBalance(source, 'cash', cash + normalized)
 end
@@ -129,6 +173,14 @@ end
 local function removeCash(source, amount)
   local ok, normalized = validAmount(amount)
   if not ok then return false, 'Ungültiger Betrag.' end
+
+  if inventoryResourceReady() then
+    local removed, reason = exports.rp_inventory:RemoveItem(source, 'bargeld', normalized)
+    if not removed then
+      return false, reason or 'Nicht genug Bargeld.'
+    end
+    return true
+  end
 
   local cash = getCash(source)
   if cash < normalized then
@@ -231,6 +283,12 @@ exports('getBank', getBank)
 exports('addBank', addBank)
 exports('removeBank', removeBank)
 exports('transferBank', transferBank)
+exports('SetCashFromInventory', setCashFromInventory)
+exports('setCashFromInventory', setCashFromInventory)
+
+AddEventHandler('rp:money:setCashFromInventory', function(targetSource, quantity)
+  setCashFromInventory(targetSource, quantity)
+end)
 
 AddEventHandler('playerDropped', function()
   AccountsCache[source] = nil
