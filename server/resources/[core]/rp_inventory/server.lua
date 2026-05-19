@@ -50,6 +50,9 @@ local WEAPON_ITEM_ICON_FILES = {
   weapon_vector = 'weapon_vector_7.png',
   weapon_vintagepistol = 'weapon_vintagepistol_19.png',
 }
+local CUSTOM_ITEM_ICON_FILES = {
+  bargeld = 'sorted_money_1.png'
+}
 
 local function isWeaponItem(itemName)
   return WEAPON_ITEM_ICON_FILES[tostring(itemName or ''):lower()] ~= nil
@@ -98,6 +101,25 @@ local function syncWeaponItemsToDb()
       }
     )
   end
+end
+
+local function syncCoreItemsToDb()
+  MySQL.query.await(
+    [=[INSERT INTO inventory_items (item_name, label, description, stackable, max_stack, weight, usable)
+       VALUES (?, ?, ?, 1, 1000000000, 0, 0)
+       ON DUPLICATE KEY UPDATE
+         label = VALUES(label),
+         description = VALUES(description),
+         stackable = VALUES(stackable),
+         max_stack = VALUES(max_stack),
+         weight = VALUES(weight),
+         usable = VALUES(usable)]=],
+    {
+      'bargeld',
+      'Bargeld',
+      'Bargeld als physisches Inventar-Item'
+    }
+  )
 end
 
 local function notify(source, ntype, title, message)
@@ -221,6 +243,10 @@ local function itemIconPath(itemName)
   local iconFile = WEAPON_ITEM_ICON_FILES[key]
   if iconFile then
     return ('icons/items/%s'):format(iconFile)
+  end
+  local customIcon = CUSTOM_ITEM_ICON_FILES[key]
+  if customIcon then
+    return ('icons/items/%s'):format(customIcon)
   end
   return ('icons/items/%s.png'):format(tostring(itemName or 'unknown'))
 end
@@ -742,6 +768,7 @@ AddEventHandler('onResourceStart', function(resourceName)
   end
 
   syncWeaponItemsToDb()
+  syncCoreItemsToDb()
   loadItemDefs()
   WorldDrops = {}
   NextDropId = 1
